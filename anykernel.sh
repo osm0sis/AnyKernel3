@@ -28,6 +28,7 @@ patch=/tmp/anykernel/patch;
 # Uncomment when using custom Sony ramdisk (2012 devices)
 #ramdisksony=/tmp/anykernel/ramdisksony;
 
+mkdir -p $ramdisk;
 cd $ramdisk;
 chmod -R 755 $bin;
 mkdir -p $split_img;
