@@ -25,9 +25,15 @@ bin=/tmp/anykernel/tools;
 split_img=/tmp/anykernel/split_img;
 patch=/tmp/anykernel/patch;
 
+# Uncomment when using custom Sony ramdisk (2012 devices)
+#ramdisksony=/tmp/anykernel/ramdisksony;
+
 cd $ramdisk;
 chmod -R 755 $bin;
 mkdir -p $split_img;
+if [ -n $ramdisksony ]; then
+  mkdir -p $ramdisksony;
+fi;
 
 OUTFD=`ps | grep -v "grep" | grep -oE "update(.*)" | cut -d" " -f3`;
 ui_print() { echo "ui_print $1" >&$OUTFD; echo "ui_print" >&$OUTFD; }
@@ -41,6 +47,19 @@ dump_boot() {
     echo 1 > /tmp/anykernel/exitcode; exit;
   fi;
   gunzip -c $split_img/boot.img-ramdisk.gz | cpio -i;
+}
+
+extract_ramdisksony() {
+  cd $ramdisksony;
+  cpio -id < $ramdisk/sbin/ramdisk.cpio;
+  ui_print " "; ui_print "Extracting ramdisk (Sony custom boot)";
+}
+
+copy_ramdisksony() {
+  rm $ramdisk/sbin/ramdisk.cpio;
+  cd $ramdisksony;
+  find . | cpio -H newc -o > $ramdisk/sbin/ramdisk.cpio;
+  ui_print " "; ui_print "Copying ramdisk (Sony custom boot)";
 }
 
 # repack ramdisk then build and write image
@@ -144,6 +163,9 @@ chmod 644 $ramdisk/sbin/media_profiles.xml
 
 ## AnyKernel install
 dump_boot;
+if [ -n $ramdisksony ]; then
+  extract_ramdisksony;
+fi;
 
 # begin ramdisk changes
 
@@ -175,7 +197,9 @@ replace_line fstab.tuna "/by-name/userdata" "/dev/block/platform/omap/omap_hsmmc
 append_file fstab.tuna "usbdisk" fstab;
 
 # end ramdisk changes
-
+if [ -n $ramdisksony ]; then
+  copy_ramdisksony;
+fi;
 write_boot;
 
 ## end install
