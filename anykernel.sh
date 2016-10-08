@@ -84,6 +84,8 @@ write_boot() {
   elif [ -f *-dtb ]; then
     dtb=`ls *-dtb`;
     dtb="--dt $split_img/$dtb";
+  elif [ -f /tmp/anykernel/dt.img ]; then
+    dtb="--dt /tmp/anykernel/dt.img";
   fi;
   if [ -f "$bin/mkbootfs" ]; then
     $bin/mkbootfs /tmp/anykernel/ramdisk | gzip > /tmp/anykernel/ramdisk-new.cpio.gz;
