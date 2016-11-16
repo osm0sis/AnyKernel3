@@ -43,6 +43,16 @@ dump_boot() {
   dd if=$block of=/tmp/anykernel/boot.img;
   $bin/unpackbootimg -i /tmp/anykernel/boot.img -o $split_img;
   if [ $? != 0 ]; then
+    $bin/elftool_arm unpack -i /tmp/anykernel/boot.img -o $split_img;
+    if test -f $split_img/header ; then
+      rm -f /tmp/anykernel/boot.img;
+      $bin/kernel_dump $split_img $block;
+      rm -f $split_img/boot.img-cmdline;
+      mv $split_img/cmdline $split_img/boot.img-cmdline;
+      elftool=1;
+    fi
+  fi;
+  if [ $? != 0 ]; then
     ui_print " "; ui_print "Dumping/splitting image failed. Aborting..."; exit 1;
   fi;
   mv -f $ramdisk /tmp/anykernel/rdtmp;
@@ -94,10 +104,14 @@ write_boot() {
   if [ $? != 0 ]; then
     ui_print " "; ui_print "Repacking ramdisk failed. Aborting..."; exit 1;
   fi;
-  $bin/mkbootimg --kernel $kernel --ramdisk /tmp/anykernel/ramdisk-new.cpio.gz $second --cmdline "$cmdline" --board "$board" --base $base --pagesize $pagesize --kernel_offset $kerneloff --ramdisk_offset $ramdiskoff $secondoff --tags_offset $tagsoff $dtb --output /tmp/anykernel/boot-new.img;
+  if test -z $elftool ; then
+    $bin/mkbootimg --kernel $kernel --ramdisk /tmp/anykernel/ramdisk-new.cpio.gz $second --cmdline "$cmdline" --board "$board" --base $base --pagesize $pagesize --kernel_offset $kerneloff --ramdisk_offset $ramdiskoff $secondoff --tags_offset $tagsoff $dtb --output /tmp/anykernel/boot-new.img;
+  elif [[ "$elftool" == "1" ]]; then
+    $bin/elftool_arm pack -o /tmp/anykernel/boot-new.img header=$split_img/header $kernel /tmp/anykernel/ramdisk-new.cpio.gz,ramdisk $(find $split_img -name *dt),rpm $(find $split_img -name *cmdline)@cmdline;
+  fi
   if [ $? != 0 ]; then
     ui_print " "; ui_print "Repacking image failed. Aborting..."; exit 1;
-  elif [ `wc -c < /tmp/anykernel/boot-new.img` -gt `wc -c < /tmp/anykernel/boot.img` ]; then
+  elif [ `wc -c < /tmp/anykernel/boot-new.img` -gt `wc -c < /tmp/anykernel/boot.img` ] && [ -z elftool ]; then
     ui_print " "; ui_print "New image larger than boot partition. Aborting..."; exit 1;
   fi;
   if [ -f "/data/custom_boot_image_patch.sh" ]; then
