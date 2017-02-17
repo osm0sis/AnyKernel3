@@ -23,6 +23,7 @@ set_perm_recursive() {
 }
 file_getprop() { grep "^$2" "$1" | cut -d= -f2; }
 getprop() { test -e /sbin/getprop && /sbin/getprop $1 || file_getprop /default.prop $1; }
+cleanup() { rm -rf /tmp/anykernel; }
 abort() { ui_print "$*"; umount /system; umount /data; exit 1; }
 
 show_progress 1.34 4;
@@ -91,11 +92,10 @@ if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.modules)" == 1 ]; then
 fi;
 
 if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.cleanup)" == 1 ]; then
-  rm -rf /tmp/anykernel;
+  cleanup;
 fi;
 
 umount /system;
 umount /data;
 ui_print " ";
 ui_print "Done!";
-
