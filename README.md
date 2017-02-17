@@ -16,6 +16,7 @@ do.devicecheck=1
 do.initd=1
 do.modules=1
 do.cleanup=1
+do.cleanuponabort=0
 device.name1=maguro
 device.name2=toro
 device.name3=toroplus
@@ -31,6 +32,8 @@ __do.initd=1__ will create the init.d directory in /system/etc/init.d/ and apply
 __do.modules=1__ will push the contents of the module directory to /system/lib/modules/ and apply 644 permissions.
 
 __do.cleanup=0__ will keep the zip from removing it's working directory in /tmp/anykernel - this can be useful if trying to debug in adb shell whether the patches worked correctly.
+
+__do.cleanuponabort=0__ will keep the zip from removing it's working directory in /tmp/anykernel in case of installation abort.
 
 `is_slot_device=1` enables detection of the suffix for the active boot partition on slot-based devices and will add this to the end of the supplied `block=` path.
 
@@ -82,4 +85,3 @@ Not required, but any tweaks you can't hardcode into the source should be added 
 
 
 Have fun!
-
