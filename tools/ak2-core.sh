@@ -357,7 +357,7 @@ replace_file() {
 # patch_fstab <fstab file> <mount match name> <fs match type> <block|mount|fstype|options|flags> <original string> <replacement string>
 patch_fstab() {
   entry=$(grep "$2" $1 | grep "$3");
-  if [ -z "$(echo "$entry" | grep "$6")" ]; then
+  if [ -z "$(echo "$entry" | grep "$6")" ] || [ -z $6 ]; then
     case $4 in
       block) part=$(echo "$entry" | awk '{ print $1 }');;
       mount) part=$(echo "$entry" | awk '{ print $2 }');;
