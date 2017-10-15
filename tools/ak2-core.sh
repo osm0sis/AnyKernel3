@@ -365,7 +365,7 @@ patch_fstab() {
       options) part=$(echo "$entry" | awk '{ print $4 }');;
       flags) part=$(echo "$entry" | awk '{ print $5 }');;
     esac;
-    newpart=$(echo "$part" | sed "s;${5};${6};");
+    newpart=$(echo "$part" | sed -e "s;${5};${6};" -e 's;,\{2,\};,;g' -e 's;,*$;;g' -e 's;^,;;g');
     newentry=$(echo "$entry" | sed "s;${part};${newpart};");
     sed -i "s;${entry};${newentry};" $1;
   fi;
