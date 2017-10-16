@@ -261,7 +261,7 @@ replace_section() {
   begin=`grep -n "$2" $1 | head -n1 | cut -d: -f1`;
   for end in `grep -n "$3" $1 | cut -d: -f1`; do
     if [ "$begin" -lt "$end" ]; then
-      if [ "$3" == " " ]; then
+      if [ "$3" == " " -o -z "$3" ]; then
         sed -i "/${2//\//\\/}/,/^\s*$/d" $1;
       else
         sed -i "/${2//\//\\/}/,/${3//\//\\/}/d" $1;
@@ -277,7 +277,7 @@ remove_section() {
   begin=`grep -n "$2" $1 | head -n1 | cut -d: -f1`;
   for end in `grep -n "$3" $1 | cut -d: -f1`; do
     if [ "$begin" -lt "$end" ]; then
-      if [ "$3" == " " ]; then
+      if [ "$3" == " " -o -z "$3" ]; then
         sed -i "/${2//\//\\/}/,/^\s*$/d" $1;
       else
         sed -i "/${2//\//\\/}/,/${3//\//\\/}/d" $1;
@@ -357,7 +357,7 @@ replace_file() {
 # patch_fstab <fstab file> <mount match name> <fs match type> <block|mount|fstype|options|flags> <original string> <replacement string>
 patch_fstab() {
   entry=$(grep "$2" $1 | grep "$3");
-  if [ -z "$(echo "$entry" | grep "$6")" ] || [ -z $6 ]; then
+  if [ -z "$(echo "$entry" | grep "$6")" -o "$6" == " " -o -z "$6" ]; then
     case $4 in
       block) part=$(echo "$entry" | awk '{ print $1 }');;
       mount) part=$(echo "$entry" | awk '{ print $2 }');;
@@ -365,7 +365,7 @@ patch_fstab() {
       options) part=$(echo "$entry" | awk '{ print $4 }');;
       flags) part=$(echo "$entry" | awk '{ print $5 }');;
     esac;
-    newpart=$(echo "$part" | sed -e "s;${5};${6};" -e 's;,\{2,\};,;g' -e 's;,*$;;g' -e 's;^,;;g');
+    newpart=$(echo "$part" | sed -e "s;${5};${6};" -e "s; ;;g" -e 's;,\{2,\};,;g' -e 's;,*$;;g' -e 's;^,;;g');
     newentry=$(echo "$entry" | sed "s;${part};${newpart};");
     sed -i "s;${entry};${newentry};" $1;
   fi;
