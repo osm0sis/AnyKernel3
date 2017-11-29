@@ -89,7 +89,7 @@ Optional supported binaries which may be placed in /tools to enable built-in exp
 
 ## // Instructions ##
 
-1. Place zImage in the root (dtb should also go here for devices that require a custom one, both will fallback to the original if not included)
+1. Place zImage in the root (dtb or dtbo should also go here for devices that require a custom one, both will fallback to the original if not included)
 
 2. Place any required ramdisk files in /ramdisk, and modules in /modules
 

@@ -268,6 +268,11 @@ write_boot() {
     dd if=/dev/zero of=$block 2>/dev/null;
     dd if=/tmp/anykernel/boot-new.img of=$block;
   fi;
+  if [ -f "/tmp/anykernel/dtbo.img" ]; then
+    find_dtbo_partition
+    dd if=/dev/zero of=$dtbo_block 2>/dev/null;
+    dd if=/tmp/anykernel/dtbo.img of=$dtbo_block;
+  fi;
 }
 
 # backup_file <file>
@@ -417,10 +422,32 @@ patch_prop() {
   fi;
 }
 
+# resolve symlinks
+resolve_link() {
+  resolved="$1"
+  while resolve=`readlink $resolved`; do
+    resolved=$resolve
+  done;
+  echo $resolved
+}
+
+# detect dtbo partition
+find_dtbo_partition() {
+  dtbo_block=`find /dev/block -iname dtbo$slot | head -n1` 2>/dev/null
+  if [ ! -z "$dtbo_block" ]; then
+    dtbo_block=`resolve_link $dtbo_block`
+  fi;
+  if [ ! -e "$(echo $dtbo_block | cut -d\  -f1)" ]; then
+    ui_print " "; ui_print "dtbo partition could not be found. Aborting..."; exit 1;
+  fi;
+}
+
 # slot detection enabled by is_slot_device=1 (from anykernel.sh)
 if [ "$is_slot_device" == 1 ]; then
   slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
+  test ! "$slot" && slot=_$(getprop ro.boot.slot 2>/dev/null);
   test ! "$slot" && slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
+  test ! "$slot" && slot=_$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
   test "$slot" && block=$block$slot;
   if [ $? != 0 -o ! -e "$block" ]; then
     ui_print " "; ui_print "Unable to determine active boot slot. Aborting..."; exit 1;
