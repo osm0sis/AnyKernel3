@@ -292,6 +292,12 @@ flash_boot() {
   if [ "$(strings /tmp/anykernel/boot.img | grep SEANDROIDENFORCE )" ]; then
     printf 'SEANDROIDENFORCE' >> boot-new.img;
   fi;
+  if [ "$(grep_prop ro.product.brand)" == "lge" ] || [ "$(grep_prop ro.product.brand)" == "LGE" ]; then 
+    case $(grep_prop ro.product.device) in
+      d800|d801|d802|d803|ls980|vs980|101f|d850|d852|d855|ls990|vs985|f400) echo -n -e "\x41\xa9\xe4\x67\x74\x4d\x1d\x1b\xa4\x29\xf2\xec\xea\x65\x52\x79" >> boot-new.img;;
+    *) ;;
+    esac
+  fi;
   if [ -f "$bin/dhtbsign" ]; then
     $bin/dhtbsign -i boot-new.img -o boot-new-signed.img;
     mv -f boot-new-signed.img boot-new.img;
@@ -482,6 +488,9 @@ patch_prop() {
     sed -i "${line}s;.*;${2}=${3};" $1;
   fi;
 }
+
+# grep_prop <prop name>
+grep_prop() { grep "^$1" "/system/build.prop" | cut -d= -f2; }
 
 # slot detection enabled by is_slot_device=1 (from anykernel.sh)
 if [ "$is_slot_device" == 1 ]; then
