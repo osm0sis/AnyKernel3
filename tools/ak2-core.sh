@@ -3,7 +3,7 @@
 ramdisk=/tmp/anykernel/ramdisk;
 bin=/tmp/anykernel/tools;
 split_img=/tmp/anykernel/split_img;
-patch=/tmp/anykernel/patch;                   
+patch=/tmp/anykernel/patch;
 
 chmod -R 755 $bin;
 mkdir -p $ramdisk $split_img;
