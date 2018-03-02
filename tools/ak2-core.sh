@@ -23,6 +23,34 @@ reset_ak() {
   . /tmp/anykernel/tools/ak2-core.sh $FD;
 }
 
+# detect slot
+slot_detect() {
+  slot=`getprop ro.boot.slot_suffix`
+  if [ -z $slot ]; then
+    slot=_`getprop ro.boot.slot`
+    [ $slot = "_" ] && slot=
+  fi
+  if [ ! -z $slot ]; then           
+    if [ -d $ramdisk/.subackup -o -d $ramdisk/.backup ]; then
+      patch_cmdline "skip_override" "skip_override"
+    else
+      patch_cmdline "skip_override" ""
+    fi
+    if [ -d $ramdisk/.backup ]; then
+      overlay=$ramdisk/overlay
+    elif [ -d $ramdisk/.subackup ]; then
+      overlay=$ramdisk/boot
+    fi
+    for rdfile in $list; do
+      rddir=$(dirname $rdfile)
+      mkdir -p $overlay/$rddir
+      test ! -f $overlay/$rdfile && cp -rp /system/$rdfile $overlay/$rddir/
+    done                       
+  else
+    overlay=$ramdisk
+  fi
+}
+             
 # dump boot and extract ramdisk
 split_boot() {
   if [ ! -e "$(echo $block | cut -d\  -f1)" ]; then
@@ -109,6 +137,7 @@ unpack_ramdisk() {
   test ! -z "$(ls /tmp/anykernel/rdtmp)" && cp -af /tmp/anykernel/rdtmp/* $ramdisk;
 }
 dump_boot() {
+  detect_slot;            
   split_boot;
   unpack_ramdisk;
 }
@@ -482,21 +511,6 @@ patch_prop() {
     sed -i "${line}s;.*;${2}=${3};" $1;
   fi;
 }
-
-# slot detection enabled by is_slot_device=1 (from anykernel.sh)
-if [ "$is_slot_device" == 1 ]; then
-  slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-  test ! "$slot" && slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-  if [ ! "$slot" ]; then
-    slot=$(getprop ro.boot.slot 2>/dev/null);
-    test ! "$slot" && slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-    test "$slot" && slot=_$slot;
-  fi;
-  test "$slot" && block=$block$slot;
-  if [ $? != 0 -o ! -e "$block" ]; then
-    ui_print " "; ui_print "Unable to determine active boot slot. Aborting..."; exit 1;
-  fi;
-fi;
 
 ## end methods
 
