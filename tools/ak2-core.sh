@@ -45,7 +45,7 @@ signedboot_check() {
   test ! -z $slot && RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
   if (`echo $RET | grep "VALID" >/dev/null 2>&1`); then
     ui_print "Signed boot img detected!"
-    mv -f $bin/avb-signing/avb $bin/avb-signing/BootSignature_Android.jar $bin
+    SIGNED=true
   fi
 }
 
@@ -276,7 +276,7 @@ flash_boot() {
     fi;
     mv -f boot-new-signed.img boot-new.img;
   fi;
-  if [ ! -z $slot ]; then
+  if [ ! -z $SIGNED ]; then
     ui_print "Signing boot image..."
     if [ -f "/system/system/bin/dalvikvm" ]; then
       umount /system;
