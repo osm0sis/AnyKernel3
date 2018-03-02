@@ -4,12 +4,15 @@ ramdisk=/tmp/anykernel/ramdisk;
 bin=/tmp/anykernel/tools;
 split_img=/tmp/anykernel/split_img;
 patch=/tmp/anykernel/patch;
+slot=<slot>;         
 
 chmod -R 755 $bin;
 mkdir -p $ramdisk $split_img;
 
 FD=$1;
 OUTFD=/proc/self/fd/$FD;
+
+
 
 # ui_print <text>
 ui_print() { echo -e "ui_print $1\nui_print" > $OUTFD; }
@@ -107,10 +110,52 @@ unpack_ramdisk() {
     ui_print " "; ui_print "Unpacking ramdisk failed. Aborting..."; exit 1;
   fi;
   test ! -z "$(ls /tmp/anykernel/rdtmp)" && cp -af /tmp/anykernel/rdtmp/* $ramdisk;
+  rm -f $ramdisk/placeholder;
+}
+signedboot_check() {
+  # Detect if boot.img is signed - credits to chainfire @xda-developers
+  unset LD_LIBRARY_PATH
+  BOOTSIGNATURE="/system/bin/dalvikvm -Xbootclasspath:/system/framework/core-oj.jar:/system/framework/core-libart.jar:/system/framework/conscrypt.jar:/system/framework/bouncycastle.jar -Xnodex2oat -Xnoimage-dex2oat -cp $bin/avb-signing/BootSignature_Android.jar com.android.verity.BootSignature"
+  if [ ! -f "/system/bin/dalvikvm" ]; then
+    # if we don't have dalvikvm, we want the same behavior as boot.art/oat not found
+    RET="initialize runtime"
+  else
+    RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
+  fi
+  test ! -z $slot && RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
+  if (`echo $RET | grep "VALID" >/dev/null 2>&1`); then
+    ui_print "Signed boot img detected!"
+    mv -f $bin/avb-signing/avb $bin/avb-signing/BootSignature_Android.jar $bin
+  fi
 }
 dump_boot() {
   split_boot;
   unpack_ramdisk;
+  signedboot_check;
+}
+
+# Slot device support
+slot_device() {
+  if [ ! -z $slot ]; then           
+    if [ -d $ramdisk/.subackup -o -d $ramdisk/.backup ]; then
+      patch_cmdline "skip_override" "skip_override"
+    else
+      patch_cmdline "skip_override" ""
+    fi
+    # Overlay stuff
+    if [ -d $ramdisk/.backup ]; then
+      overlay=$ramdisk/overlay
+    elif [ -d $ramdisk/.subackup ]; then
+      overlay=$ramdisk/boot
+    fi
+    for rdfile in $list; do
+      rddir=$(dirname $rdfile)
+      mkdir -p $overlay/$rddir
+      test ! -f $overlay/$rdfile && cp -rp /system/$rdfile $overlay/$rddir/
+    done                       
+  else
+    overlay=$ramdisk
+  fi
 }
 
 # repack ramdisk then build and write image
@@ -249,13 +294,7 @@ flash_boot() {
     mv -f boot-new-signed.img boot-new.img;
   fi;
   if [ -f "$bin/BootSignature_Android.jar" -a -d "$bin/avb" ]; then
-    if [ -f "/system/system/bin/dalvikvm" ]; then
-      umount /system;
-      umount /system 2>/dev/null;
-      mkdir /system_root;
-      mount -o ro -t auto /dev/block/bootdevice/by-name/system$slot /system_root;
-      mount -o bind /system_root/system /system;
-    fi;
+    ui_print "Signing boot image..."
     pk8=`ls $bin/avb/*.pk8`;
     cert=`ls $bin/avb/*.x509.*`;
     case $block in
@@ -270,12 +309,6 @@ flash_boot() {
     fi;
     test "$savedpath" && export LD_LIBRARY_PATH="$savedpath";
     mv -f boot-new-signed.img boot-new.img;
-    if [ -d "/system_root" ]; then
-      umount /system;
-      umount /system_root;
-      rmdir /system_root;
-      mount -o ro -t auto /system;
-    fi;
   fi;
   if [ -f "$bin/blobpack" ]; then
     printf '-SIGNED-BY-SIGNBLOB-\00\00\00\00\00\00\00\00' > boot-new-signed.img;
@@ -291,6 +324,12 @@ flash_boot() {
   fi;
   if [ "$(strings /tmp/anykernel/boot.img | grep SEANDROIDENFORCE )" ]; then
     printf 'SEANDROIDENFORCE' >> boot-new.img;
+  fi;
+  if [ "$(grep_prop ro.product.brand)" == "lge" ] || [ "$(grep_prop ro.product.brand)" == "LGE" ]; then 
+    case $(grep_prop ro.product.device) in
+      d800|d801|d802|d803|ls980|vs980|101f|d850|d852|d855|ls990|vs985|f400) echo -n -e "\x41\xa9\xe4\x67\x74\x4d\x1d\x1b\xa4\x29\xf2\xec\xea\x65\x52\x79" >> boot-new.img;;
+    *) ;;
+    esac
   fi;
   if [ -f "$bin/dhtbsign" ]; then
     $bin/dhtbsign -i boot-new.img -o boot-new-signed.img;
@@ -338,6 +377,9 @@ write_boot() {
 # backup_file <file>
 backup_file() { test ! -f $1~ && cp $1 $1~; }
 
+# restore_file <file>
+restore_file() { test -f $1~ && mv -f $1~ $1; }
+                     
 # replace_string <file> <if search string> <original string> <replacement string>
 replace_string() {
   if [ -z "$(grep "$2" $1)" ]; then
@@ -483,20 +525,8 @@ patch_prop() {
   fi;
 }
 
-# slot detection enabled by is_slot_device=1 (from anykernel.sh)
-if [ "$is_slot_device" == 1 ]; then
-  slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-  test ! "$slot" && slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-  if [ ! "$slot" ]; then
-    slot=$(getprop ro.boot.slot 2>/dev/null);
-    test ! "$slot" && slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-    test "$slot" && slot=_$slot;
-  fi;
-  test "$slot" && block=$block$slot;
-  if [ $? != 0 -o ! -e "$block" ]; then
-    ui_print " "; ui_print "Unable to determine active boot slot. Aborting..."; exit 1;
-  fi;
-fi;
+# grep_prop <prop name>
+grep_prop() { grep "^$1" "/system/build.prop" | cut -d= -f2; }
 
 ## end methods
 
