@@ -137,7 +137,7 @@ unpack_ramdisk() {
   test ! -z "$(ls /tmp/anykernel/rdtmp)" && cp -af /tmp/anykernel/rdtmp/* $ramdisk;
 }
 dump_boot() {
-  detect_slot;            
+  slot_detect;            
   split_boot;
   unpack_ramdisk;
 }
