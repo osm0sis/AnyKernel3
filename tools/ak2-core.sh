@@ -3,7 +3,7 @@
 ramdisk=/tmp/anykernel/ramdisk;
 bin=/tmp/anykernel/tools;
 split_img=/tmp/anykernel/split_img;
-patch=/tmp/anykernel/patch;
+patch=/tmp/anykernel/patch;                   
 
 chmod -R 755 $bin;
 mkdir -p $ramdisk $split_img;
@@ -21,6 +21,15 @@ contains() { test "${1#*$2}" != "$1" && return 0 || return 1; }
 reset_ak() {
   rm -rf $ramdisk $split_img /tmp/anykernel/rdtmp /tmp/anykernel/boot.img /tmp/anykernel/*-new.*;
   . /tmp/anykernel/tools/ak2-core.sh $FD;
+}
+
+# detect slot
+slot_detect() {
+  slot=`getprop ro.boot.slot_suffix`
+  if [ -z $slot ]; then
+    slot=_`getprop ro.boot.slot`
+    [ $slot = "_" ] && slot=
+  fi
 }
 
 # dump boot and extract ramdisk
@@ -108,9 +117,27 @@ unpack_ramdisk() {
   fi;
   test ! -z "$(ls /tmp/anykernel/rdtmp)" && cp -af /tmp/anykernel/rdtmp/* $ramdisk;
 }
+signedboot_check() {
+  # Detect if boot.img is signed - credits to chainfire @xda-developers
+  unset LD_LIBRARY_PATH
+  BOOTSIGNATURE="/system/bin/dalvikvm -Xbootclasspath:/system/framework/core-oj.jar:/system/framework/core-libart.jar:/system/framework/conscrypt.jar:/system/framework/bouncycastle.jar -Xnodex2oat -Xnoimage-dex2oat -cp $bin/avb-signing/BootSignature_Android.jar com.android.verity.BootSignature"
+  if [ ! -f "/system/bin/dalvikvm" ]; then
+    # if we don't have dalvikvm, we want the same behavior as boot.art/oat not found
+    RET="initialize runtime"
+  else
+    RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
+  fi
+  test ! -z $slot && RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
+  if (`echo $RET | grep "VALID" >/dev/null 2>&1`); then
+    ui_print "Signed boot img detected!"
+    mv -f $bin/avb-signing/avb $bin/avb-signing/BootSignature_Android.jar $bin
+  fi
+}                    
 dump_boot() {
+  detect_slot;
   split_boot;
   unpack_ramdisk;
+  signedboot_check;
 }
 
 # repack ramdisk then build and write image
@@ -248,7 +275,8 @@ flash_boot() {
     fi;
     mv -f boot-new-signed.img boot-new.img;
   fi;
-  if [ -f "$bin/BootSignature_Android.jar" -a -d "$bin/avb" ]; then
+  if [ ! -z $slot ]; then
+    ui_print "Signing boot image..."
     if [ -f "/system/system/bin/dalvikvm" ]; then
       umount /system;
       umount /system 2>/dev/null;
@@ -482,21 +510,6 @@ patch_prop() {
     sed -i "${line}s;.*;${2}=${3};" $1;
   fi;
 }
-
-# slot detection enabled by is_slot_device=1 (from anykernel.sh)
-if [ "$is_slot_device" == 1 ]; then
-  slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-  test ! "$slot" && slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-  if [ ! "$slot" ]; then
-    slot=$(getprop ro.boot.slot 2>/dev/null);
-    test ! "$slot" && slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-    test "$slot" && slot=_$slot;
-  fi;
-  test "$slot" && block=$block$slot;
-  if [ $? != 0 -o ! -e "$block" ]; then
-    ui_print " "; ui_print "Unable to determine active boot slot. Aborting..."; exit 1;
-  fi;
-fi;
-
+                       
 ## end methods
 
