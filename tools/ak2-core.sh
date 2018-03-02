@@ -32,6 +32,23 @@ slot_detect() {
   fi
 }
 
+# Detect if boot.img is signed - credits to chainfire @xda-developers
+signedboot_check() {
+  unset LD_LIBRARY_PATH
+  BOOTSIGNATURE="/system/bin/dalvikvm -Xbootclasspath:/system/framework/core-oj.jar:/system/framework/core-libart.jar:/system/framework/conscrypt.jar:/system/framework/bouncycastle.jar -Xnodex2oat -Xnoimage-dex2oat -cp $bin/avb-signing/BootSignature_Android.jar com.android.verity.BootSignature"
+  if [ ! -f "/system/bin/dalvikvm" ]; then
+    # if we don't have dalvikvm, we want the same behavior as boot.art/oat not found
+    RET="initialize runtime"
+  else
+    RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
+  fi
+  test ! -z $slot && RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
+  if (`echo $RET | grep "VALID" >/dev/null 2>&1`); then
+    ui_print "Signed boot img detected!"
+    mv -f $bin/avb-signing/avb $bin/avb-signing/BootSignature_Android.jar $bin
+  fi
+}
+
 # dump boot and extract ramdisk
 split_boot() {
   if [ ! -e "$(echo $block | cut -d\  -f1)" ]; then
@@ -117,27 +134,11 @@ unpack_ramdisk() {
   fi;
   test ! -z "$(ls /tmp/anykernel/rdtmp)" && cp -af /tmp/anykernel/rdtmp/* $ramdisk;
 }
-signedboot_check() {
-  # Detect if boot.img is signed - credits to chainfire @xda-developers
-  unset LD_LIBRARY_PATH
-  BOOTSIGNATURE="/system/bin/dalvikvm -Xbootclasspath:/system/framework/core-oj.jar:/system/framework/core-libart.jar:/system/framework/conscrypt.jar:/system/framework/bouncycastle.jar -Xnodex2oat -Xnoimage-dex2oat -cp $bin/avb-signing/BootSignature_Android.jar com.android.verity.BootSignature"
-  if [ ! -f "/system/bin/dalvikvm" ]; then
-    # if we don't have dalvikvm, we want the same behavior as boot.art/oat not found
-    RET="initialize runtime"
-  else
-    RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
-  fi
-  test ! -z $slot && RET=$($BOOTSIGNATURE -verify /tmp/anykernel/boot.img 2>&1)
-  if (`echo $RET | grep "VALID" >/dev/null 2>&1`); then
-    ui_print "Signed boot img detected!"
-    mv -f $bin/avb-signing/avb $bin/avb-signing/BootSignature_Android.jar $bin
-  fi
-}                    
 dump_boot() {
   detect_slot;
+  signedboot_check;
   split_boot;
   unpack_ramdisk;
-  signedboot_check;
 }
 
 # repack ramdisk then build and write image
