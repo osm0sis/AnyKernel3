@@ -107,6 +107,7 @@ unpack_ramdisk() {
     ui_print " "; ui_print "Unpacking ramdisk failed. Aborting..."; exit 1;
   fi;
   test ! -z "$(ls /tmp/anykernel/rdtmp)" && cp -af /tmp/anykernel/rdtmp/* $ramdisk;
+  rm -f $ramdisk/placeholder;                           
 }
 dump_boot() {
   split_boot;
@@ -338,6 +339,9 @@ write_boot() {
 # backup_file <file>
 backup_file() { test ! -f $1~ && cp $1 $1~; }
 
+# restore_file <file>
+restore_file() { test -f $1~ && mv -f $1~ $1; }
+
 # replace_string <file> <if search string> <original string> <replacement string>
 replace_string() {
   if [ -z "$(grep "$2" $1)" ]; then
@@ -482,6 +486,9 @@ patch_prop() {
     sed -i "${line}s;.*;${2}=${3};" $1;
   fi;
 }
+
+# grep_prop <prop name>
+grep_prop() { grep "^$1" "/system/build.prop" | cut -d= -f2; }
 
 # slot detection enabled by is_slot_device=1 (from anykernel.sh)
 if [ "$is_slot_device" == 1 ]; then

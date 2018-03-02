@@ -17,9 +17,19 @@ device.name5=
 } # end properties
 
 # shell variables
-block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;
 is_slot_device=0;
 ramdisk_compression=auto;
+# determine the location of the boot partition
+if [ "$(find /dev/block -name boot | head -n 1)" ]; then
+  block=$(find /dev/block -name boot | head -n 1)
+elif [ -e /dev/block/platform/sdhci-tegra.3/by-name/LNX ]; then
+  block=/dev/block/platform/sdhci-tegra.3/by-name/LNX
+else
+  abort "! Boot img not found! Aborting!"
+fi
+
+# force expansion of the path so we can use it
+block=`echo -n $block`;                                                 
 
 
 ## AnyKernel methods (DO NOT CHANGE)
