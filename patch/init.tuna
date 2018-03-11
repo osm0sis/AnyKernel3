@@ -1,5 +1,0 @@
-service dvbootscript /sbin/dvbootscript.sh
-	class main
-	user root
-	group root
-	oneshot
