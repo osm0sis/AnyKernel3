@@ -122,6 +122,7 @@ if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.modules)" == 1 ]; then
         *) mod=system;;
       esac;
     fi;
+    $bb mkdir -p /$(dirname $module);                                 
     $bb cp -rLf $module /$module;
     $bb chown 0:0 /$module;
     $bb chmod 644 /$module;
