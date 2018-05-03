@@ -30,6 +30,23 @@ reset_ak() {
   . /tmp/anykernel/tools/ak2-core.sh $FD;
 }
 
+# slot detection enabled by is_slot_device=1 (from anykernel.sh)
+if [ "$is_slot_device" == 1 -o "$is_slot_device" == "auto" ]; then
+  slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
+  test ! "$slot" && slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
+  if [ ! "$slot" ]; then
+    slot=$(getprop ro.boot.slot 2>/dev/null);
+    test ! "$slot" && slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
+    test "$slot" && slot=_$slot;
+  fi;
+  if [ "$slot" ]; then
+    bootimage=`find /dev/block -iname boot$slot | head -n 1` 2>/dev/null;
+  fi;
+  if [ $? != 0 -a "$is_slot_device" == 1 ]; then
+    ui_print " "; ui_print "Unable to determine active boot slot. Aborting..."; exit 1;
+  fi;
+fi;
+
 # find the location of the boot block
 find_boot() {
   # if we already have boot block set then verify and use it
@@ -47,14 +64,14 @@ find_boot() {
   if [ -z $block ]; then
     for blocks in ramdisk boot_a kern-a android_boot kernel boot lnx bootimg; do
       block=`find /dev/block -iname $blocks | head -n 1` 2>/dev/null;
-      [ ! -z $block ] && break;
+      [ ! -z $block ] && return;
     done
   fi
   # Recovery fallback
   if [ -z $block ]; then
     for fstabs in /fstab.* /system/vendor/etc/fstab.* /etc/*fstab*; do
       block=`grep -v '#' $fstabs | grep -E '/boot[^a-zA-Z]' | grep -oE '/dev/[a-zA-Z0-9_./-]*'`;
-      [ ! -z $block ] && break;
+      [ ! -z $block ] && return;
     done
   fi
   [ ! -z $block ] && block=`readlink -f $block`;
@@ -67,14 +84,15 @@ find_boot() {
   if [ -f /proc/mtd ]; then
     # mtd layout
     block=$(awk '$4 == "\"boot\"" {print $1}' /proc/mtd);
-    [ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && if [ -f $bin/flash_erase -a -f $bin/nanddump -a -f $bin/nandwrite ]; then return; else ui_print "MTD device detected!"; abort "Required binaries missing!"; fi;
+    [ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && if [ -f $bin/flash_erase -a -f $bin/nanddump -a -f $bin/nandwrite ]; then return; else ui_print "MTD device detected!"; ui_print "Required binaries missing!"; exit 1; fi;
   fi
   if [ -f /proc/dumchar_info ]; then
     # mtk layout
     block=$(awk '$1 == "/boot" {print $5}' /proc/dumchar_info);
-    [ "$block" ] && if [ ! -f $bin/mkmtkhdr ]; then return; else ui_print "MTK device detected!"; abort "Required binaries missing!"; fi;
+    [ "$block" ] && if [ ! -f $bin/mkmtkhdr ]; then return; else ui_print "MTK device detected!"; ui_print "Required binaries missing!"; exit 1; fi;
   fi
-  abort "Unable to find boot block location!";
+  ui_print "Unable to find boot block location!";
+  exit 1;
 }
 # Slot device support
 slot_device() {
@@ -589,23 +607,6 @@ if [ ! -d "$ramdisk" -a ! -d "$patch" ]; then
   touch /tmp/anykernel/$(basename $block)-files/current;
 fi;
 test ! -d "$ramdisk" && mkdir -p $ramdisk;
-
-# slot detection enabled by is_slot_device=1 (from anykernel.sh)
-if [ "$is_slot_device" == 1 -o "$is_slot_device" == "auto" ]; then
-  slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-  test ! "$slot" && slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-  if [ ! "$slot" ]; then
-    slot=$(getprop ro.boot.slot 2>/dev/null);
-    test ! "$slot" && slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-    test "$slot" && slot=_$slot;
-  fi;
-  if [ "$slot" ]; then
-    bootimage=`find /dev/block -iname boot$slot | head -n 1` 2>/dev/null;
-  fi;
-  if [ $? != 0 -a "$is_slot_device" == 1 ]; then
-    ui_print " "; ui_print "Unable to determine active boot slot. Aborting..."; exit 1;
-  fi;
-fi;
 
 ## end methods
 
