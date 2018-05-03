@@ -30,6 +30,75 @@ reset_ak() {
   . /tmp/anykernel/tools/ak2-core.sh $FD;
 }
 
+# find the location of the boot block
+find_boot() {
+	# if we already have boot block set then verify and use it
+	if [ "$block" != "auto" ] && [ -e "`readlink -f $block`" ]; then
+    block=`readlink -f $block`;
+    [ "$slot" ] && test -e "$block$slot" && block=$block$slot;
+    return;
+  elif [ ! -z $bootimage ]; then
+    block=$bootimage;
+    return;
+  else
+    block=;
+  fi
+  # auto-detect
+	if [ -z $block ]; then
+    for blocks in ramdisk boot_a kern-a android_boot kernel boot lnx bootimg; do
+      block=`find /dev/block -iname $blocks | head -n 1` 2>/dev/null;
+      [ ! -z $block ] && break;
+    done
+  fi
+  # Recovery fallback
+  if [ -z $block ]; then
+    for fstabs in /fstab.* /system/vendor/etc/fstab.* /etc/*fstab*; do
+      block=`grep -v '#' $fstabs | grep -E '/boot[^a-zA-Z]' | grep -oE '/dev/[a-zA-Z0-9_./-]*'`;
+      [ ! -z $block ] && break;
+    done
+  fi
+  [ ! -z $block ] && block=`readlink -f $block`;
+  # Weird partition layouts
+	if [ -f /proc/emmc ]; then
+		# emmc layout
+		block=$(awk '$4 == "\"boot\"" {print $1}' /proc/emmc);
+		[ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && return;
+	fi
+	if [ -f /proc/mtd ]; then
+		# mtd layout
+		block=$(awk '$4 == "\"boot\"" {print $1}' /proc/mtd);
+		[ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && if [ -f $bin/flash_erase -a -f $bin/nanddump -a -f $bin/nandwrite ]; then return; else ui_print "MTD device detected!"; abort "Required binaries missing!"; fi;
+	fi
+	if [ -f /proc/dumchar_info ]; then
+		# mtk layout
+		block=$(awk '$1 == "/boot" {print $5}' /proc/dumchar_info);
+		[ "$block" ] && if [ ! -f $bin/mkmtkhdr ]; then return; else ui_print "MTK device detected!"; abort "Required binaries missing!"; fi;
+	fi
+	abort "Unable to find boot block location!";
+}
+# Slot device support
+slot_device() {
+  if [ ! -z $slot ]; then           
+    if [ -d $ramdisk/.subackup -o -d $ramdisk/.backup ]; then
+      patch_cmdline "skip_override" "skip_override";
+    else
+      patch_cmdline "skip_override" "";
+    fi
+    # Overlay stuff
+    if [ -d $ramdisk/.backup ]; then
+      overlay=$ramdisk/overlay;
+    elif [ -d $ramdisk/.subackup ]; then
+      overlay=$ramdisk/boot;
+    fi
+    for rdfile in $list; do
+      rddir=$(dirname $rdfile);
+      mkdir -p $overlay/$rddir;
+      test ! -f $overlay/$rdfile && cp -rp /system/$rdfile $overlay/$rddir/;
+    done                       
+  else
+    overlay=$ramdisk;
+  fi
+}
 # dump boot and extract ramdisk
 split_boot() {
   if [ ! -e "$(echo $block | cut -d\  -f1)" ]; then
@@ -121,6 +190,8 @@ unpack_ramdisk() {
   test ! -z "$(ls /tmp/anykernel/rdtmp)" && cp -af /tmp/anykernel/rdtmp/* $ramdisk;
 }
 dump_boot() {
+  find_boot;
+  slot_device;
   split_boot;
   unpack_ramdisk;
 }
@@ -529,7 +600,7 @@ if [ "$is_slot_device" == 1 -o "$is_slot_device" == "auto" ]; then
     test "$slot" && slot=_$slot;
   fi;
   if [ "$slot" ]; then
-    test -e "$block$slot" && block=$block$slot;
+    bootimage=`find /dev/block -iname boot$slot | head -n 1` 2>/dev/null;
   fi;
   if [ $? != 0 -a "$is_slot_device" == 1 ]; then
     ui_print " "; ui_print "Unable to determine active boot slot. Aborting..."; exit 1;
