@@ -32,8 +32,8 @@ reset_ak() {
 
 # find the location of the boot block
 find_boot() {
-	# if we already have boot block set then verify and use it
-	if [ "$block" != "auto" ] && [ -e "`readlink -f $block`" ]; then
+  # if we already have boot block set then verify and use it
+  if [ "$block" != "auto" ] && [ -e "`readlink -f $block`" ]; then
     block=`readlink -f $block`;
     [ "$slot" ] && test -e "$block$slot" && block=$block$slot;
     return;
@@ -44,7 +44,7 @@ find_boot() {
     block=;
   fi
   # auto-detect
-	if [ -z $block ]; then
+  if [ -z $block ]; then
     for blocks in ramdisk boot_a kern-a android_boot kernel boot lnx bootimg; do
       block=`find /dev/block -iname $blocks | head -n 1` 2>/dev/null;
       [ ! -z $block ] && break;
@@ -59,22 +59,22 @@ find_boot() {
   fi
   [ ! -z $block ] && block=`readlink -f $block`;
   # Weird partition layouts
-	if [ -f /proc/emmc ]; then
-		# emmc layout
-		block=$(awk '$4 == "\"boot\"" {print $1}' /proc/emmc);
-		[ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && return;
-	fi
-	if [ -f /proc/mtd ]; then
-		# mtd layout
-		block=$(awk '$4 == "\"boot\"" {print $1}' /proc/mtd);
-		[ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && if [ -f $bin/flash_erase -a -f $bin/nanddump -a -f $bin/nandwrite ]; then return; else ui_print "MTD device detected!"; abort "Required binaries missing!"; fi;
-	fi
-	if [ -f /proc/dumchar_info ]; then
-		# mtk layout
-		block=$(awk '$1 == "/boot" {print $5}' /proc/dumchar_info);
-		[ "$block" ] && if [ ! -f $bin/mkmtkhdr ]; then return; else ui_print "MTK device detected!"; abort "Required binaries missing!"; fi;
-	fi
-	abort "Unable to find boot block location!";
+  if [ -f /proc/emmc ]; then
+    # emmc layout
+    block=$(awk '$4 == "\"boot\"" {print $1}' /proc/emmc);
+    [ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && return;
+  fi
+  if [ -f /proc/mtd ]; then
+    # mtd layout
+    block=$(awk '$4 == "\"boot\"" {print $1}' /proc/mtd);
+    [ "$block" ] && block=/dev/block/$(echo "$block" | cut -f1 -d:) && if [ -f $bin/flash_erase -a -f $bin/nanddump -a -f $bin/nandwrite ]; then return; else ui_print "MTD device detected!"; abort "Required binaries missing!"; fi;
+  fi
+  if [ -f /proc/dumchar_info ]; then
+    # mtk layout
+    block=$(awk '$1 == "/boot" {print $5}' /proc/dumchar_info);
+    [ "$block" ] && if [ ! -f $bin/mkmtkhdr ]; then return; else ui_print "MTK device detected!"; abort "Required binaries missing!"; fi;
+  fi
+  abort "Unable to find boot block location!";
 }
 # Slot device support
 slot_device() {
