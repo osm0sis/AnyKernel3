@@ -3,7 +3,7 @@
 
 ## AnyKernel setup
 # begin properties
-properties() {
+properties() { '
 kernel.string=DirtyV by bsmitty83 @ xda-developers
 do.devicecheck=1
 do.modules=0
@@ -14,7 +14,7 @@ device.name2=toro
 device.name3=toroplus
 device.name4=
 device.name5=
-} # end properties
+'; } # end properties
 
 # shell variables
 block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;

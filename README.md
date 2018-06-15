@@ -110,7 +110,7 @@ Optional supported binaries which may be placed in /tools to enable built-in exp
 
 4. Modify the anykernel.sh to add your kernel's name, boot partition location, permissions for included ramdisk files, and use methods for any required ramdisk modifications (optionally, also place banner and/or version files in the root to have these displayed during flash)
 
-5. `zip -r9 UPDATE-AnyKernel2.zip * -x README UPDATE-AnyKernel2.zip`
+5. `zip -r9 UPDATE-AnyKernel2.zip * -x README.md UPDATE-AnyKernel2.zip`
 
 If supporting a recovery that forces zip signature verification (like Cyanogen Recovery) then you will need to also sign your zip using the method I describe here:
 
