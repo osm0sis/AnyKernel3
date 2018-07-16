@@ -108,6 +108,7 @@ if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.devicecheck)" == 1 ]; then
     if [ "$device" == "$testname" -o "$product" == "$testname" ]; then
       ui_print "$testname";
       match=1;
+      break;
     fi;
   done;
   ui_print " ";
