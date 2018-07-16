@@ -100,9 +100,11 @@ unset LD_PRELOAD;
 
 if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.devicecheck)" == 1 ]; then
   ui_print "Checking device...";
+  device="$(getprop ro.product.device)";
+  product="$(getprop ro.build.product)";
   for i in 1 2 3 4 5; do
     testname="$(file_getprop /tmp/anykernel/anykernel.sh device.name$i)";
-    if [ "$(getprop ro.product.device)" == "$testname" -o "$(getprop ro.build.product)" == "$testname" ]; then
+    if [ "$device" == "$testname" -o "$product" == "$testname" ]; then
       ui_print "$testname";
       match=1;
     fi;
