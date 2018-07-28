@@ -1,0 +1,30 @@
+# SPECTRUM KERNEL MANAGER
+# Ramdisk file for profile based kernel management
+
+# Initialization
+on property:sys.boot_completed=1
+   # Set balanced profile at every boot
+   setprop persist.spectrum.profile 0
+
+   # Enable Spectrum support
+   setprop spectrum.support 1
+
+# Balance
+on property:persist.spectrum.profile=0
+   exec u:r:init:s0 root root -- /sbin/spa balance
+   exec u:r:su:s0 root root -- /sbin/spa balance
+
+# Performance
+on property:persist.spectrum.profile=1
+   exec u:r:init:s0 root root -- /sbin/spa performance
+   exec u:r:su:s0 root root -- /sbin/spa performance
+
+# Battery
+on property:persist.spectrum.profile=2
+   exec u:r:init:s0 root root -- /sbin/spa battery
+   exec u:r:su:s0 root root -- /sbin/spa battery
+
+# Gaming
+on property:persist.spectrum.profile=3
+   exec u:r:init:s0 root root -- /sbin/spa gaming
+   exec u:r:su:s0 root root -- /sbin/spa gaming
