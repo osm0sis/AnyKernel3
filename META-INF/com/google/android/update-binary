@@ -74,7 +74,9 @@ fi;
 ui_print "$(file_getprop /tmp/anykernel/anykernel.sh kernel.string)";
 if [ -f /tmp/anykernel/version ]; then
   ui_print " ";
-  ui_print "$(cat /tmp/anykernel/version)";
+  while IFS='' read -r line || $bb [[ -n "$line" ]]; do
+    ui_print "$line";
+  done < /tmp/anykernel/version;
   ui_print " ";
 fi;
 ui_print " ";
