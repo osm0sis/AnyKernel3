@@ -335,11 +335,11 @@ flash_boot() {
     dd if=/dev/zero of=$block 2>/dev/null;
     dd if=/tmp/anykernel/boot-new.img of=$block;
   fi;
-  flash_dtbo;
 }
 write_boot() {
   repack_ramdisk;
   flash_boot;
+  flash_dtbo;
 }
 
 # backup_file <file>
