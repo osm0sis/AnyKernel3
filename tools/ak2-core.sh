@@ -159,6 +159,27 @@ repack_ramdisk() {
     mv -f ramdisk-new.cpio.$compext-mtk ramdisk-new.cpio.$compext;
   fi;
 }
+flash_dtbo() {
+  for i in dtbo dtbo.img; do
+    if [ -f /tmp/anykernel/$i ]; then
+      dtbo=$i;
+      break;
+    fi;
+  done;
+  if [ "$dtbo" ]; then
+    dtbo_block=/dev/block/bootdevice/by-name/dtbo$slot;
+    if [ ! -e "$(echo $dtbo_block)" ]; then
+      ui_print " "; ui_print "dtbo partition could not be found. Aborting..."; exit 1;
+    fi;
+    if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
+      $bin/flash_erase $dtbo_block 0 0;
+      $bin/nandwrite -p $dtbo_block /tmp/anykernel/$dtbo;
+    else
+      dd if=/dev/zero of=$dtbo_block 2>/dev/null;
+      dd if=/tmp/anykernel/$dtbo of=$dtbo_block;
+    fi;
+  fi;
+}
 flash_boot() {
   local name arch os type comp addr ep cmdline cmd board base pagesize kerneloff ramdiskoff tagsoff osver oslvl second secondoff hash unknown i kernel rd dtb rpm pk8 cert avbtype dtbo dtbo_block;
   cd $split_img;
@@ -314,25 +335,7 @@ flash_boot() {
     dd if=/dev/zero of=$block 2>/dev/null;
     dd if=/tmp/anykernel/boot-new.img of=$block;
   fi;
-  for i in dtbo dtbo.img; do
-    if [ -f /tmp/anykernel/$i ]; then
-      dtbo=$i;
-      break;
-    fi;
-  done;
-  if [ "$dtbo" ]; then
-    dtbo_block=/dev/block/bootdevice/by-name/dtbo$slot;
-    if [ ! -e "$(echo $dtbo_block)" ]; then
-      ui_print " "; ui_print "dtbo partition could not be found. Aborting..."; exit 1;
-    fi;
-    if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
-      $bin/flash_erase $dtbo_block 0 0;
-      $bin/nandwrite -p $dtbo_block /tmp/anykernel/$dtbo;
-    else
-      dd if=/dev/zero of=$dtbo_block 2>/dev/null;
-      dd if=/tmp/anykernel/$dtbo of=$dtbo_block;
-    fi;
-  fi;
+  flash_dtbo;
 }
 write_boot() {
   repack_ramdisk;
