@@ -94,15 +94,20 @@ if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.devicecheck)" == 1 ]; then
   ui_print "Checking device...";
   device="$(getprop ro.product.device)";
   product="$(getprop ro.build.product)";
-  for i in 1 2 3 4 5; do
-    testname="$(file_getprop /tmp/anykernel/anykernel.sh device.name$i)";
-    test "$testname" || break;
-    if [ "$device" == "$testname" -o "$product" == "$testname" ]; then
-      ui_print "$testname";
+  testnames="$(file_getprop /tmp/anykernel/anykernel.sh device.names)";
+  OIFS=$IFS;
+  IFS=",";
+  set -- $testnames;
+  for name in "$@"; do
+    test "$name" || break;
+    if [ "$device" == "$name" -o "$product" == "$name" ]; then
+      ui_print "$name";
       match=1;
       break;
     fi;
   done;
+  IFS=$OIFS;
+  set --;
   ui_print " ";
   if [ "$match" != 1 ]; then
     abort "Unsupported device. Aborting...";

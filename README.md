@@ -16,16 +16,14 @@ do.devicecheck=1
 do.modules=1
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=maguro
-device.name2=toro
-device.name3=toroplus
+device.names=maguro,toro,toroplus
 
 block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;
 is_slot_device=0;
 ramdisk_compression=auto;
 ```
 
-__do.devicecheck=1__ specified requires at least device.name1 to be present. This should match ro.product.device or ro.build.product for your device. There is support for up to 5 device.name# properties.
+__do.devicecheck=1__ specified requires at least one name in prop device.names to be present. This should match ro.product.device or ro.build.product for your device.
 
 __do.modules=1__ will push the contents of the module directory to the same location relative to root (/) and apply 644 permissions.
 
