@@ -13,7 +13,9 @@ ui_print() {
   done;
 }
 show_progress() { echo "progress $1 $2" > $OUTFD; }
-file_getprop() { $bb grep "^$2=" "$1" | $bb cut -d= -f2; }
+file_getprop() {
+	$bb grep -P "^$2=[a-zA-Z0-9]+(?:(?:[-_.][a-zA-Z0-9]+)+)?$" "$1" | $bb cut -d= -f2;
+}
 cleanup() {
   cd /tmp;
   rm -rf /tmp/anykernel;
