@@ -13,7 +13,7 @@ ui_print() {
   done;
 }
 show_progress() { echo "progress $1 $2" > $OUTFD; }
-file_getprop() { $bb grep "^$2=" "$1" | $bb cut -d= -f2-; }
+file_getprop() { $bb grep "^$2.*" "$1" | $bb sed "s/^$2//"; }
 cleanup() {
   cd /tmp;
   rm -rf /tmp/anykernel;
@@ -39,7 +39,7 @@ unmount_all() {
 abort() {
   ui_print "$*";
   debugging;
-  if [ ! -f anykernel.sh -o "$(file_getprop anykernel.sh do.cleanuponabort 2>/dev/null)" == 1 ]; then
+  if [ ! -f anykernel.sh -o "$(file_getprop anykernel.sh 'do.cleanuponabort=' 2>/dev/null)" == 1 ]; then
     cleanup;
   fi;
   unmount_all;
@@ -67,7 +67,7 @@ if [ -f banner ]; then
   ui_print " ";
 fi;
 
-ui_print "$(file_getprop anykernel.sh kernel.string)";
+ui_print "$(file_getprop anykernel.sh 'kernel.string=')";
 if [ -f version ]; then
   ui_print " ";
   while IFS='' read -r line || $bb [[ -n "$line" ]]; do
@@ -98,8 +98,8 @@ unset LD_PRELOAD;
 
 if [ ! "$(getprop 2>/dev/null)" ]; then
   getprop() {
-    local propval="$(file_getprop /default.prop $1 2>/dev/null)";
-    test "$propval" || local propval="$(file_getprop /system/build.prop $1 2>/dev/null)";
+    local propval="$(file_getprop /default.prop "$1=" 2>/dev/null)";
+    test "$propval" || local propval="$(file_getprop /system/build.prop "$1=" 2>/dev/null)";
     test "$propval" && echo "$propval" || echo "";
   }
 elif [ ! "$(getprop ro.product.device 2>/dev/null)" -a ! "$(getprop ro.build.product 2>/dev/null)" ]; then
@@ -108,11 +108,11 @@ elif [ ! "$(getprop ro.product.device 2>/dev/null)" -a ! "$(getprop ro.build.pro
   }
 fi;
 
-if [ "$(file_getprop anykernel.sh do.devicecheck)" == 1 ]; then
+if [ "$(file_getprop anykernel.sh 'do.devicecheck=')" == 1 ]; then
   ui_print "Checking device...";
   device="$(getprop ro.product.device)";
   product="$(getprop ro.build.product)";
-  for testname in $(file_getprop anykernel.sh 'device.name.*'); do
+  for testname in $(file_getprop anykernel.sh 'device.name.*='); do
     if [ "$device" == "$testname" -o "$product" == "$testname" ]; then
       ui_print "$testname";
       match=1;
@@ -137,7 +137,7 @@ if [ $? != 0 ]; then
   abort;
 fi;
 
-if [ "$(file_getprop anykernel.sh do.modules)" == 1 ]; then
+if [ "$(file_getprop anykernel.sh 'do.modules=')" == 1 ]; then
   ui_print " ";
   ui_print "Pushing modules...";
   $bb mount -o rw,remount -t auto /system;
@@ -171,7 +171,7 @@ fi;
 
 debugging;
 
-if [ "$(file_getprop anykernel.sh do.cleanup)" == 1 ]; then
+if [ "$(file_getprop anykernel.sh 'do.cleanup=')" == 1 ]; then
   cleanup;
 fi;
 
