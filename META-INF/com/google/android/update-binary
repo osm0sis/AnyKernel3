@@ -171,10 +171,12 @@ done;
 if [ $? != 0 -o -z "$(ls bin)" ]; then
   abort "Recovery busybox setup failed. Aborting...";
 fi;
+$bb mount -o rw,remount -t auto /vendor 2>/dev/null;
 PATH="/tmp/anykernel/bin:$PATH" $bb ash anykernel.sh $2;
 if [ $? != 0 ]; then
   abort;
 fi;
+$bb mount -o ro,remount -t auto /vendor 2>/dev/null;
 
 if [ "$(file_getprop anykernel.sh do.modules)" == 1 ]; then
   ui_print " ";
