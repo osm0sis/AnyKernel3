@@ -42,7 +42,7 @@ split_boot() {
   if [ -f "$bin/nanddump" ]; then
     $bin/nanddump -f /tmp/anykernel/boot.img $block;
   else
-    dd if=$block of=/tmp/anykernel/boot.img;
+    dd if=$block of=/tmp/anykernel/boot.img bs=1048576;
   fi;
   nooktest=$(strings /tmp/anykernel/boot.img | grep -E 'Red Loader|Green Loader|Green Recovery|eMMC boot.img|eMMC recovery.img|BauwksBoot');
   if [ "$nooktest" ]; then
@@ -194,8 +194,7 @@ flash_dtbo() {
       $bin/flash_erase $dtbo_block 0 0;
       $bin/nandwrite -p $dtbo_block /tmp/anykernel/$dtbo;
     else
-      dd if=/dev/zero of=$dtbo_block 2>/dev/null;
-      dd if=/tmp/anykernel/$dtbo of=$dtbo_block;
+      cat /tmp/anykernel/$dtbo /dev/zero > $dtbo_block 2>/dev/null;
     fi;
   fi;
 }
@@ -358,8 +357,7 @@ flash_boot() {
     $bin/flash_erase $block 0 0;
     $bin/nandwrite -p $block /tmp/anykernel/boot-new.img;
   else
-    dd if=/dev/zero of=$block 2>/dev/null;
-    dd if=/tmp/anykernel/boot-new.img of=$block;
+    cat /tmp/anykernel/boot-new.img /dev/zero > $block 2>/dev/null;
   fi;
 }
 write_boot() {
