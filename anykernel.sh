@@ -28,14 +28,13 @@ ramdisk_compression=auto;
 . /tmp/anykernel/tools/ak2-core.sh;
 
 
+## AnyKernel install
+dump_boot;
+
 ## AnyKernel file attributes
 # set permissions/ownership for included ramdisk files
 chmod -R 750 $ramdisk/*;
 chown -R root:root $ramdisk/*;
-
-
-## AnyKernel install
-dump_boot;
 
 # begin ramdisk changes
 
