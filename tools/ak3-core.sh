@@ -278,8 +278,8 @@ flash_boot() {
     test "$dt" && dt="--dt $dt";
     $bin/mkbootimg --kernel $kernel --ramdisk $ramdisk --cmdline "$cmdline" --base $home --pagesize $pagesize --kernel_offset $kerneloff --ramdisk_offset $ramdiskoff --tags_offset "$tagsoff" $dt --output $home/boot-new.img;
   else
-    test "$kernel" && cp -f $kernel kernel;
-    test "$ramdisk" && cp -f $ramdisk ramdisk.cpio;
+    test "$kernel" && cp -f $kernel kernel 2>/dev/null;
+    test "$ramdisk" && cp -f $ramdisk ramdisk.cpio 2>dev/null;
     case $kernel in
       *-dtb) rm -f kernel_dtb;;
     esac;
@@ -311,7 +311,7 @@ flash_boot() {
       /system/bin/dalvikvm -Xbootclasspath:/system/framework/core-oj.jar:/system/framework/core-libart.jar:/system/framework/conscrypt.jar:/system/framework/bouncycastle.jar -Xnodex2oat -Xnoimage-dex2oat -cp $bin/BootSignature_Android.jar com.android.verity.BootSignature /$avbtype boot-new.img $pk8 $cert boot-new-signed.img;
     fi;
   fi;
-  if [ $? != 0 -o "$signfail"]; then
+  if [ $? != 0 -o "$signfail" ]; then
     abort "Signing image failed. Aborting...";
   fi;
   mv -f boot-new-signed.img boot-new.img 2>/dev/null;
