@@ -49,7 +49,7 @@ unmount_all() {
     $bb umount /system_root;
   fi;
   $bb umount /system;
-  $bb umount /vendor;
+  umount /vendor;
   $bb umount /data) 2>/dev/null;
 }
 abort() {
