@@ -30,7 +30,7 @@ int2ver() {
   fi;
 }
 cleanup() {
-  cd $home/..;
+  cd $(dirname "$home");
   rm -rf $home;
 }
 debugging() {
