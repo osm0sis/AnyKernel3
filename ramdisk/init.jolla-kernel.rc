@@ -17,9 +17,6 @@ on post-fs
     write /sys/block/sda/queue/rq_affinity 2
     write /sys/block/sda/queue/read_ahead_kb 2048
 
-    # Dynamic fsync
-    write /sys/kernel/dyn_fsync/Dyn_fsync_active 1
-
 on property:sys.boot_completed=1
     # Adjust LMK minfree values
     write /sys/module/lowmemorykiller/parameters/minfree "12288,15360,18432,21504,24576,30720"

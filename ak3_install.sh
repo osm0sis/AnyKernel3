@@ -41,17 +41,6 @@ if [ $SKIP == 0 ]; then
   fi
 
   ui_print " "
-  ui_print " Do you want to enable dynamic fsync?"
-  ui_print "   Vol Up = Yes, Vol Down = No"
-  if $VKSEL; then
-    ui_print " Enabling Dynamic Fsync"
-    sed -i 's/Dyn_fsync_active 0/Dyn_fsync_active 1/' $home/ramdisk/init.jolla-kernel.rc;
-  else
-    ui_print " Disabling Dynamic Fsync"
-    sed -i 's/Dyn_fsync_active 1/Dyn_fsync_active 0/' $home/ramdisk/init.jolla-kernel.rc;
-  fi
-
-  ui_print " "
   ui_print " Do you want to enable kgsl power control limit?"
   ui_print "   Vol Up = Yes, Vol Down = No"
   if $VKSEL; then
