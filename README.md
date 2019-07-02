@@ -11,7 +11,7 @@ _A script based on Galaxy Nexus (tuna) is included for reference._
 
 ## // Properties / Variables ##
 ```
-kernel.string=KernelName by YourName @ xda-developers
+do.volkeyinstall=1
 do.devicecheck=1
 do.modules=1
 do.cleanup=1
@@ -33,6 +33,15 @@ __do.modules=1__ will push the contents of the module directory to the same loca
 __do.cleanup=0__ will keep the zip from removing it's working directory in /tmp/anykernel (by default) - this can be useful if trying to debug in adb shell whether the patches worked correctly.
 
 __do.cleanuponabort=0__ will keep the zip from removing it's working directory in /tmp/anykernel (by default) in case of installation abort.
+
+__do.volkeyinstall=1__ will run ak2_install.sh where you need to add code for volume key options. (see ak2_install.sh for example for LG v30 vol keys) 
+
+__ak2_install.sh__  * Use $VKSEL variable whenever you want to call the volume key selection function. The function returns true if user selected vol up and false if vol down
+Ex: if $VKSEL; then
+      echo "true"
+    else
+      echo "false"
+    fi
 
 __supported.versions=__ will match against ro.build.version.release from the current ROM's build.prop. It can be set to a list or range. As a list of one or more entries, e.g. `7.1.2` or `8.1.0, 9` it will look for exact matches, as a range, e.g. `7.1.2 - 9` it will check to make sure the current version falls within those limits. Whitespace optional, and supplied version values should be in the same number format they are in the build.prop value for that Android version.
 
@@ -124,7 +133,9 @@ Optional supported binaries which may be placed in /tools to enable built-in exp
 
 4. Modify the anykernel.sh to add your kernel's name, boot partition location, permissions for added ramdisk files, and use methods for any required ramdisk modifications (optionally, also place banner and/or version files in the root to have these displayed during flash)
 
-5. `zip -r9 UPDATE-AnyKernel3.zip * -x .git README.md *placeholder`
+5. Modify ak2_install.sh if applicible.
+
+6. `zip -r9 UPDATE-AnyKernel3.zip * -x .git README.md *placeholder`
 
 If supporting a recovery that forces zip signature verification (like Cyanogen Recovery) then you will need to also sign your zip using the method I describe here:
 
