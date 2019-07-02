@@ -4,21 +4,17 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=ExampleKernel by osm0sis @ xda-developers
+do.volkeyinstall=1
 do.devicecheck=1
 do.modules=0
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=maguro
-device.name2=toro
-device.name3=toroplus
-device.name4=tuna
-device.name5=
-supported.versions=
+device.name1=joan
+supported.versions=8.0.0, 9
 '; } # end properties
 
 # shell variables
-block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;
+block=/dev/block/bootdevice/by-name/boot;
 is_slot_device=0;
 ramdisk_compression=auto;
 
@@ -40,23 +36,47 @@ dump_boot;
 # begin ramdisk changes
 
 # init.rc
-backup_file init.rc;
-replace_string init.rc "cpuctl cpu,timer_slack" "mount cgroup none /dev/cpuctl cpu" "mount cgroup none /dev/cpuctl cpu,timer_slack";
+android_ver=$(file_getprop /system/build.prop ro.build.version.release);
+selinux=<selinux>
 
-# init.tuna.rc
-backup_file init.tuna.rc;
-insert_line init.tuna.rc "nodiratime barrier=0" after "mount_all /fstab.tuna" "\tmount ext4 /dev/block/platform/omap/omap_hsmmc.0/by-name/userdata /data remount nosuid nodev noatime nodiratime barrier=0";
-append_file init.tuna.rc "bootscript" init.tuna;
-
-# fstab.tuna
-backup_file fstab.tuna;
-patch_fstab fstab.tuna /system ext4 options "noatime,barrier=1" "noatime,nodiratime,barrier=0";
-patch_fstab fstab.tuna /cache ext4 options "barrier=1" "barrier=0,nomblk_io_submit";
-patch_fstab fstab.tuna /data ext4 options "data=ordered" "nomblk_io_submit,data=writeback";
-append_file fstab.tuna "usbdisk" fstab;
-
+if [ $android_ver == 8.0.0 ]; then
+  ui_print " Backing up init.joan.rc";
+  backup_file init.joan.rc;
+  ui_print " Adding init.rc import for Jolla Kernel in init.joan.rc";
+#  grep "init.jolla-kernel.rc" init.joan.rc && { ui_print " Import already added" || sed -i "/import \/init.msm8998_core.rc/a import /init.jolla-kernel.rc" init.joan.rc; }
+  if grep "init.jolla-kernel.rc" init.joan.rc; then
+    ui_print "Import Already Added"
+  else
+    sed -i "/import \/init.msm8998_core.rc/a import /init.jolla-kernel.rc" init.joan.rc
+  fi
+else
+  ui_print " Backing up init.rc";
+  backup_file init.rc;
+  backup_file init.joan.power.rc;
+  ui_print " Adding init.rc import for Jolla Kernel in init.rc";
+#  grep "init.jolla-kernel.rc" init.rc && { ui_print " Import already added" || sed -i "/import \/init.usb.configfs.rc/a import /init.jolla-kernel.rc" init.rc; }
+  if grep "init.jolla-kernel.rc" init.rc; then
+    ui_print "Import Already Added"
+  else
+    sed -i "/import \/init.usb.configfs.rc/a import /init.jolla-kernel.rc" init.rc
+  fi
+  ui_print " Disabling Triton and Cancun"
+  sed -i '/triton/s/^/#/g' init.joan.power.rc;
+  sed -i '/class/s/^/#/1' init.joan.power.rc;
+  sed -i '/user/s/^/#/1' init.joan.power.rc;
+  sed -i '/group/s/^/#/1' init.joan.power.rc;
+  sed -i '/disabled/s/^/#/1' init.joan.power.rc;
+  sed -i '/on/s/^/#/1/'  init.joan.power.rc;
+fi;
 # end ramdisk changes
+
+if [ "$selinux" == yes ]; then
+  patch_cmdline "androidboot.selinux=permissive" "androidboot.selinux=permissive"
+  patch_cmdline "androidboot.selinux=enforcing" ""
+fi
+if [ "$selinux" == no ]; then
+  patch_cmdline "androidboot.selinux=permissive" ""
+fi
 
 write_boot;
 ## end install
-

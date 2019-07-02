@@ -4,6 +4,10 @@
 
 OUTFD=/proc/self/fd/$2;
 ZIPFILE="$3";
+DIR=$(dirname "$ZIPFILE");
+ZIP=$(basename "$ZIPFILE" | tr '[:lower:]' '[:upper:]' | tr "_" " " | tr "-" " " | sed "s/ak3//g" | sed "s/ANYKERNEL3//g" | sed "s/ANYKERNEL 3//g" | sed "/[[:punct:]]*/{ s/[^[:alnum:][:space:].]//g}");
+FNAME="${ZIP%.*}";
+EXT="${ZIP##*.}";
 
 ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false;
 $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true;
@@ -11,6 +15,44 @@ $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMO
 $BOOTMODE && DIR=/sdcard || DIR=$(dirname "$ZIPFILE");
 
 test "$home" || home=/tmp/anykernel;
+
+run_addons() {
+  local OPT=`getopt -o mhiuv -- "$@"` NAME PNAME
+  eval set -- "$OPT"
+  while true; do
+    case "$1" in
+      -m) NAME=main; shift;;
+      -h) NAME=preinstall; PNAME="Preinstall"; shift;;
+      -i) NAME=install; PNAME="Install"; shift;;
+      -u) NAME=uninstall; PNAME="Uninstall"; shift;;
+      -v) NAME=postuninstall; PNAME="Postuninstall"; shift;;
+      --) shift; break;;
+    esac
+  done
+  if [ "$(ls -A $home/addon/*/$NAME.sh 2>/dev/null)" ]; then
+    [ -z $PNAME ] || { ui_print " "; ui_print "- Running $PNAME Addons -"; }
+    for i in $home/addon/*/$NAME.sh; do
+      ui_print "  Running $(echo $i | sed -r "s|$home/addon/(.*)/$NAME.sh|\1|")..."
+      . $i
+    done
+    [ -z $PNAME ] || { ui_print " "; ui_print "- `echo $PNAME`ing (cont) -"; }
+  fi
+}
+
+api_level_arch_detect() {
+  API=`getprop ro.build.version.sdk`
+  ABI=`getprop ro.product.cpu.abi | cut -c-3`
+  ABI2=`getprop ro.product.cpu.abi2 | cut -c-3`
+  ABILONG=`getprop ro.product.cpu.abi`
+
+  ARCH=arm
+  ARCH32=arm
+  IS64BIT=false
+  if [ "$ABI" = "x86" ]; then ARCH=x86; ARCH32=x86; fi;
+  if [ "$ABI2" = "x86" ]; then ARCH=x86; ARCH32=x86; fi;
+  if [ "$ABILONG" = "arm64-v8a" ]; then ARCH=arm64; ARCH32=arm; IS64BIT=true; fi;
+  if [ "$ABILONG" = "x86_64" ]; then ARCH=x64; ARCH32=x86; IS64BIT=true; fi;
+}
 
 ui_print() {
   until [ ! "$1" ]; do
@@ -97,7 +139,7 @@ if [ -f banner ]; then
   ui_print " " " ";
 fi;
 
-ui_print "$(file_getprop anykernel.sh kernel.string)";
+ui_print "$FNAME";
 if [ -f version ]; then
   ui_print " ";
   while IFS='' read -r line || $bb [[ -n "$line" ]]; do
@@ -177,6 +219,32 @@ if [ "$supported_ver" ]; then
   else
     ui_print " ";
     abort "Unsupported Android version. Aborting...";
+  fi;
+fi;
+
+if [ "$(file_getprop anykernel.sh do.volkeyinstall)" == 1 ]; then
+  ui_print " ";
+  ui_print "Starting Vol Key Options...";
+  sleep 2;
+# Main addons
+  [ -f "$home/addon.tar.xz" ] && tar -xf $home/addon.tar.xz -C $home 2>/dev/null;
+  api_level_arch_detect;
+  run_addons -m;
+  echo $PATH | grep -q "^$home/tools/$ARCH32" || export PATH=$home/tools/$ARCH32:$PATH;
+# Preinstall Addons
+  run_addons -h;
+  ui_print " ";
+  ui_print "Running Addons...";
+  sleep 2;
+# Install Addons
+  run_addons -i;
+  file=$home/ak3_install.sh;
+  sed -i "s|<ANDROID_VER>|$android_ver|" "$file";
+  chmod a+x $home/ak3_install.sh;
+  PATH="$home:$PATH"
+   . $home/ak3_install.sh
+  if [ $? != 0 ]; then
+    abort;
   fi;
 fi;
 
