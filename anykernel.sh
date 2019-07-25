@@ -9,7 +9,6 @@ do.devicecheck=1
 do.modules=0
 do.cleanup=1
 do.cleanuponabort=0
-<<<<<<< HEAD
 device.name1=joan
 supported.versions=8.0.0, 9
 supported.patchlevels=
