@@ -20,6 +20,7 @@ device.name1=maguro
 device.name2=toro
 device.name3=toroplus
 supported.versions=6.0 - 7.1.2
+supported.patchlevels=2019-07 -
 
 block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;
 is_slot_device=0;
@@ -45,6 +46,8 @@ Ex: if $VKSEL; then
 
 __supported.versions=__ will match against ro.build.version.release from the current ROM's build.prop. It can be set to a list or range. As a list of one or more entries, e.g. `7.1.2` or `8.1.0, 9` it will look for exact matches, as a range, e.g. `7.1.2 - 9` it will check to make sure the current version falls within those limits. Whitespace optional, and supplied version values should be in the same number format they are in the build.prop value for that Android version.
 
+__supported.patchlevels=__ will match against ro.build.version.security_patch from the current ROM's build.prop. It can be set as a closed or open-ended range of dates in the format YYYY-MM, whitespace optional, e.g. `2019-04 - 2019-06`, `2019-04 -` or `- 2019-06` where the last two examples show setting a minimum and maximum, respectively.
+
 `block=auto` instead of a direct block filepath enables detection of the device boot partition for use with broad, device non-specific zips. Also accepts specifically `boot` or `recovery`.
 
 `is_slot_device=1` enables detection of the suffix for the active boot partition on slot-based devices and will add this to the end of the supplied `block=` path. Also accepts `auto` for use with broad, device non-specific zips.
@@ -55,8 +58,18 @@ __supported.versions=__ will match against ro.build.version.release from the cur
 
 `slot_select=active|inactive` may be added to allow specifying the target slot. If omitted the default remains `active`.
 
+_Note: Currently pushing modules is to the active slot only._
+
 ## // Command Methods ##
 ```
+ui_print "<text>" [...]
+abort ["<text>" [...]]
+contains <string> <substring>
+file_getprop <file> <property>
+
+set_perm <owner> <group> <mode> <file> [<file2> ...]
+set_perm_recursive <owner> <group> <dir_mode> <file_mode> <dir> [<dir2> ...]
+
 dump_boot
 split_boot
 unpack_ramdisk
@@ -122,6 +135,8 @@ Optional supported binaries which may be placed in /tools to enable built-in exp
 * `futility` + `chromeos` test keys directory - Google ChromeOS signature support
 * `BootSignature_Android.jar` + `avb` keys directory - Google Android Verified Boot (AVB) signature support
 * `rkcrc` - Rockchip KRNL ramdisk image support
+
+Optionally moving ARM builds to tools/arm and putting x86 builds in tools/x86 will enable architecture detection for use with broad, device non-specific zips.
 
 ## // Instructions ##
 
