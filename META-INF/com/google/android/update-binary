@@ -27,7 +27,7 @@ ui_printfile() {
 show_progress() { echo "progress $1 $2" > $OUTFD; }
 file_getprop() { $bb grep "^$2=" "$1" | $bb cut -d= -f2-; }
 int2ver() {
-  if [ "$1" -eq "$1" ] 2>/dev/null; then 
+  if [ "$1" -eq "$1" ] 2>/dev/null; then
     echo "$1.0.0";
   elif [ ! "$(echo "$1" | $bb cut -d. -f3)" ]; then
     echo "$1.0";
