@@ -27,7 +27,7 @@ ui_printfile() {
 show_progress() { echo "progress $1 $2" > $OUTFD; }
 file_getprop() { $bb grep "^$2=" "$1" | $bb cut -d= -f2-; }
 int2ver() {
-  if [ "$1" -eq "$1" ] 2>/dev/null; then 
+  if [ "$1" -eq "$1" ] 2>/dev/null; then
     echo "$1.0.0";
   elif [ ! "$(echo "$1" | $bb cut -d. -f3)" ]; then
     echo "$1.0";
@@ -163,28 +163,40 @@ savedpre="$LD_PRELOAD";
 unset LD_LIBRARY_PATH;
 unset LD_PRELOAD;
 
+nameprops=("ro.product.device" "ro.build.product" "ro.vendor.product.device" "ro.vendor.build.product");
 if [ ! "$(getprop 2>/dev/null)" ]; then
+  proplocations=("/" "/system" "/vendor" "/odm");
   getprop() {
-    local propval="$(file_getprop /default.prop $1 2>/dev/null)";
-    test "$propval" || local propval="$(file_getprop /system/build.prop $1 2>/dev/null)";
+    for location in "${proplocations[@]}"; do
+      local propval="$(file_getprop "$location"default.prop $1 2>/dev/null)";
+      test "$propval" && break;
+    done;
     test "$propval" && echo "$propval" || echo "";
   }
-elif [ ! "$(getprop ro.product.device 2>/dev/null)" -a ! "$(getprop ro.build.product 2>/dev/null)" ]; then
-  getprop() {
-    ($(which getprop) | $bb grep "$1" | $bb cut -d[ -f3 | $bb cut -d] -f1) 2>/dev/null;
-  }
+else
+  for getdevice in "${nameprops[@]}"; do
+    if [ "$(getprop $getdevice 2>/dev/null)" ]; then
+      propfail=0 && break;
+    fi;
+    propfail=1;
+  done;
+  if [ "$propfail" ]; then
+    getprop() {
+      ($(which getprop) | $bb grep "$1" | $bb cut -d[ -f3 | $bb cut -d] -f1) 2>/dev/null;
+    }
+  fi;
 fi;
 
 if [ "$(file_getprop anykernel.sh do.devicecheck)" == 1 ]; then
   ui_print "Checking device...";
-  device=$(getprop ro.product.device);
-  product=$(getprop ro.build.product);
   for testname in $(file_getprop anykernel.sh 'device.name.*'); do
-    if [ "$device" == "$testname" -o "$product" == "$testname" ]; then
-      ui_print "$testname" " ";
-      match=1;
-      break;
-    fi;
+    for device in "${nameprops[@]}"; do
+      if [ "$(getprop $device)" == "$testname" ]; then
+        ui_print "$testname" " ";
+        match=1;
+        break;
+      fi;
+    done;
   done;
   if [ ! "$match" ]; then
     abort " " "Unsupported device. Aborting...";
