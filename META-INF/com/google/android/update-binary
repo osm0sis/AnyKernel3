@@ -57,7 +57,8 @@ setup_mountpoint() {
 }
 is_mounted() { $bb mount | $bb grep -q " $1 "; }
 umount_all() {
-  ($bb umount /system;
+  (umount_apex;
+  $bb umount /system;
   $bb umount -l /system;
   if [ -e /system_root ]; then
     $bb umount /system_root;
@@ -69,6 +70,52 @@ umount_all() {
     $bb umount /data;
     $bb umount -l /data;
   fi) 2>/dev/null;
+}
+mount_apex() {
+  [ -d /system/apex ] || return 1
+  [ -L /apex ] && rm -f /apex
+  if [ -f "/system/apex/com.android.runtime.release.apex" ]; then
+    local j=0
+    for i in /system/apex/*.apex; do
+      local dest="/apex/$(basename $i | sed 's/.apex$//')"
+      [ "$dest" == "/apex/com.android.runtime.release" ] && dest="/apex/com.android.runtime"
+      mkdir -p $dest
+      $bb unzip -qo $i apex_payload.img -d /apex
+      mv -f /apex/apex_payload.img $dest.img
+      while [ $j -lt 50 ]; do
+        loop=/dev/loop$j
+        $bb mknod $loop b 7 $j 2>/dev/null
+        $bb losetup $loop $dest.img 2>/dev/null
+        j=$((j + 1))
+        $bb losetup $loop | grep -q $dest.img && break
+      done;
+      [ -z $floop ] && floop=$((j - 1))
+      $bb mount -t ext4 -o loop,noatime,ro $loop $dest || return 1
+    done
+  # Already extracted payload imgs present, just mount the folders
+  elif [ -d "/system/apex/com.android.runtime.release" ]; then
+    for i in /system/apex/*; do
+      local dest="/apex/$(basename $i)"
+      [ "$dest" == "/apex/com.android.runtime.release" ] && dest="/apex/com.android.runtime"
+      mkdir -p $dest
+      $bb mount -o bind,ro $i $dest
+    done
+  fi
+}
+umount_apex() {
+  [ -d /apex ] || return 1
+  for i in /apex/*; do
+    $bb umount -l $i 2>/dev/null
+  done
+  if [ -f "/system/apex/com.android.runtime.release.apex" ]; then
+    [ -z $floop ] && local j=0 || local j=$floop
+    while [ $j -lt 50 ]; do
+      loop=/dev/loop$j
+      $bb losetup -d $loop || break
+      j=$((j + 1))
+    done
+  fi
+  rm -rf /apex
 }
 restore_env() {
   test "$savedpath" && export LD_LIBRARY_PATH="$savedpath";
@@ -153,6 +200,7 @@ if is_mounted /system_root; then
   $bb mount -o bind /system_root/system /system;
 fi;
 $bb mount -o ro -t auto /vendor 2>/dev/null;
+mount_apex;
 if ! is_mounted /data; then
   $bb mount /data;
   umount_data=1;
