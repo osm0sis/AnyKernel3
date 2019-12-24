@@ -75,7 +75,7 @@ mount_apex() {
   [ -d /system/apex ] || return 1
   [ -L /apex ] && rm -f /apex
   if [ -f "/system/apex/com.android.runtime.release.apex" ]; then
-    local j=0
+    local j=0 k=0
     for i in /system/apex/*.apex; do
       local dest="/apex/$(basename $i | sed 's/.apex$//')"
       [ "$dest" == "/apex/com.android.runtime.release" ] && dest="/apex/com.android.runtime"
@@ -84,9 +84,10 @@ mount_apex() {
       mv -f /apex/apex_payload.img $dest.img
       while [ $j -lt 50 ]; do
         loop=/dev/loop$j
-        $bb mknod $loop b 7 $j 2>/dev/null
+        $bb mknod $loop b 7 $k 2>/dev/null
         $bb losetup $loop $dest.img 2>/dev/null
         j=$((j + 1))
+        k=$((k + 8))
         $bb losetup $loop | grep -q $dest.img && break
       done;
       [ -z $floop ] && floop=$((j - 1))
