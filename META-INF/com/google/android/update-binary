@@ -76,7 +76,7 @@ mount_apex() {
   [ -L /apex ] && rm -f /apex
   if [ -f "/system/apex/com.android.runtime.release.apex" ]; then
     local j=0
-    [ -e /dev/block/loop1 ] && local minorx=$(ls -l /dev/block/loop1 | awk '{print $6}') || local minorx=1
+    [ -e /dev/block/loop1 ] && local minorx=$(ls -l /dev/block/loop1 | $bb awk '{print $6}') || local minorx=1
     for i in /system/apex/*.apex; do
       local dest="/apex/$(basename $i | sed 's/.apex$//')"
       [ "$dest" == "/apex/com.android.runtime.release" ] && dest="/apex/com.android.runtime"
