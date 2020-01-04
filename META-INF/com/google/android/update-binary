@@ -57,7 +57,7 @@ setup_mountpoint() {
 }
 is_mounted() { $bb mount | $bb grep -q " $1 "; }
 umount_all() {
-  (umount_apex;
+  ($BOOTMODE || umount_apex;
   $bb umount /system;
   $bb umount -l /system;
   if [ -e /system_root ]; then
@@ -199,7 +199,7 @@ if is_mounted /system_root; then
   $bb mount -o bind /system_root/system /system;
 fi;
 $bb mount -o ro -t auto /vendor 2>/dev/null;
-mount_apex;
+$BOOTMODE || mount_apex;
 if ! is_mounted /data; then
   $bb mount /data;
   umount_data=1;
