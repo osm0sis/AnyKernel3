@@ -154,7 +154,8 @@ unpack_ramdisk() {
   if [ -f ramdisk.cpio ]; then
     comp=$($bin/magiskboot decompress ramdisk.cpio 2>&1 | grep -v 'raw' | sed -n 's;.*\[\(.*\)\];\1;p');
   else
-    abort "No ramdisk found to unpack. Aborting...";
+    ui_print "No ramdisk found to unpack.";
+    return 0;
   fi;
   if [ "$comp" ]; then
     mv -f ramdisk.cpio ramdisk.cpio.$comp;
@@ -190,6 +191,11 @@ dump_boot() {
 repack_ramdisk() {
   local comp packfail mtktype;
 
+  cd $split_img;
+  if [[ ! -f ramdisk.cpio ] || [ ! -f ramdisk.cpio.gz ]]; then
+    ui_print "No ramdisk found to repack.";
+    return 0;
+  fi;
   cd $home;
   case $ramdisk_compression in
     auto|"") comp=$(ls $split_img/ramdisk.cpio.* 2>/dev/null | grep -v 'mtk' | rev | cut -d. -f1 | rev);;
