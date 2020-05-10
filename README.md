@@ -13,6 +13,7 @@ _A script based on Galaxy Nexus (tuna) is included for reference. Everything to 
 ```
 kernel.string=KernelName by YourName @ xda-developers
 do.devicecheck=1
+do.cpucheck=1
 do.modules=1
 do.systemless=1
 do.cleanup=1
@@ -21,6 +22,8 @@ device.name1=maguro
 device.name2=toro
 device.name3=toroplus
 device.name4=tuna
+cpu.name1=sdm845
+cpu.name2=sdm855
 supported.versions=6.0 - 7.1.2
 supported.patchlevels=2019-07 -
 
@@ -30,6 +33,8 @@ ramdisk_compression=auto;
 ```
 
 __do.devicecheck=1__ specified requires at least device.name1 to be present. This should match ro.product.device, ro.build.product, ro.product.vendor.device or ro.vendor.product.device from the build.prop files for your device. There is support for as many device.name# properties as needed. You may remove any empty ones that aren't being used.
+
+__do.cpucheck=1__ specified requires at least cpu.name1 to be present. This should match ro.product.board or ro.board.platform, from the build.prop files for your device. There is support for as many cpu.name# properties as needed. You may remove any empty ones that aren't being used.
 
 __do.modules=1__ will push the .ko contents of the modules directory to the same location relative to root (/) and apply correct permissions. On A/B devices this can only be done to the active slot.
 
