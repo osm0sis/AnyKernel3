@@ -6,6 +6,7 @@
 properties() { '
 kernel.string=ExampleKernel by osm0sis @ xda-developers
 do.devicecheck=1
+do.cpucheck=1
 do.modules=0
 do.systemless=1
 do.cleanup=1
@@ -15,6 +16,8 @@ device.name2=toro
 device.name3=toroplus
 device.name4=tuna
 device.name5=
+cpu.name1=sdm845
+cpu.name2=sdm855
 supported.versions=
 supported.patchlevels=
 '; } # end properties
