@@ -223,6 +223,27 @@ do_devicecheck() {
     abort " " "Unsupported device. Aborting...";
   fi;
 }
+do_cpucheck(){
+  test "$(file_getprop anykernel.sh do.cpucheck)" == 1 || return 1;
+  local board vendorboard platform vendorplatform cpuname match testname;
+  ui_print "Checking cpu...";
+  board=$(file_getprop /system/build.prop ro.product.board);
+  platform=$(file_getprop /system/build.prop ro.board.platform);
+  vendorboard=$(file_getprop /vendor/build.prop ro.product.board);
+  vendorplatform=$(file_getprop /vendor/build.prop ro.board.platform);
+  for testname in $(file_getprop anykernel.sh 'cpu.name.*'); do
+    for cpuname in $board $platform $vendorboard $vendorplatform; do
+      if [ "$cpuname" == "$testname" ]; then
+        ui_print "$testname" " ";
+        match=1;
+        break 2;
+      fi;
+    done;
+  done;
+  if [ ! "$match" ]; then
+    abort " " "Unsupported CPU. Aborting...";
+  fi;
+}
 int2ver() {
   if $BB [ "$1" -eq "$1" ] 2>/dev/null; then
     echo "$1.0.0";
@@ -404,6 +425,7 @@ ui_print " " "AnyKernel3 by osm0sis @ xda-developers" " " " ";
 setup_env;
 
 do_devicecheck;
+do_cpucheck;
 do_versioncheck;
 do_levelcheck;
 
