@@ -462,11 +462,6 @@ if [ $? != 0 -o -z "$(ls bin)" ]; then
   abort "* Busybox setup failed. Aborting!";
 fi;
 
-if [ -f banner ]; then
-  ui_printfile banner;
-  ui_print " " " ";
-fi;
-
 KERNEL_STRING="$(file_getprop anykernel.sh kernel.string)";
 ui_print "$KERNEL_STRING";
 if [ -f version ]; then
