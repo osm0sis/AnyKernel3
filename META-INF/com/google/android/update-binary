@@ -462,14 +462,6 @@ if [ $? != 0 -o -z "$(ls bin)" ]; then
   abort "* Busybox setup failed. Aborting!";
 fi;
 
-KERNEL_STRING="$(file_getprop anykernel.sh kernel.string)";
-ui_print "$KERNEL_STRING";
-if [ -f version ]; then
-  ui_print " ";
-  ui_printfile version;
-  ui_print " ";
-fi;
-
 setup_env;
 
 do_devicecheck;
