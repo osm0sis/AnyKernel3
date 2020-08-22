@@ -1,0 +1,29 @@
+# SPECTRUM KERNEL MANAGER
+# Ramdisk file for profile based kernel management
+# Implimentation inspired by Franco's fku profiles
+
+# Initialization
+on property:sys.boot_completed=1
+   # Set default profile on first boot
+   exec u:r:init:s0 root root -- /vendor/etc/init/hw/init.spectrum.sh
+   exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.spectrum.sh
+   # Enable Spectrum support
+   setprop spectrum.support 1
+   # Add kernel name
+   setprop persist.spectrum.kernel Electron
+
+# Balance (default profile)
+on property:persist.spectrum.profile=0
+    # Add configs here
+
+# Performance (based on DrunkSauce Lite)
+on property:persist.spectrum.profile=1
+    # Add configs here
+
+# Battery
+on property:persist.spectrum.profile=2
+    # Add configs here
+
+# Gaming
+on property:persist.spectrum.profile=3
+    # Add configs here

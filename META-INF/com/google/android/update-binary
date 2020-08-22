@@ -372,6 +372,29 @@ do_modules() {
   cd $AKHOME;
 }
 
+push_spectrum(){
+ if [ "$(file_getprop anykernel.sh do.spectrum)" == 1 ]; then
+  cd $AKHOME;
+  $BB mount -o rw,remount -t auto /system;
+  $BB mount -o rw,remount -t auto /vendor 2>/dev/null;
+
+  # Push spectrum support
+  if [ -e $AKHOME/spectrum/init.spectrum.rc ];then
+    ui_print " " "Pushing Spectrum Support...";
+    if [ ! -e /vendor/etc/init/hw/init.qcom.rc.bkp ];then
+      cp -af /vendor/etc/init/hw/init.qcom.rc /vendor/etc/init/hw/init.qcom.rc.bkp
+    fi
+    grep "import /vendor/etc/init/hw/init.spectrum.rc" /vendor/etc/init/hw/init.qcom.rc >/dev/null || sed -i '1,/.*import.*/s/.*import.*/import \/vendor\/etc\/init\/hw\/init.spectrum.rc\n&/' /vendor/etc/init/hw/init.qcom.rc
+    cp -af $AKHOME/spectrum/init.spectrum.rc /vendor/etc/init/hw/
+    chmod -R 644 /vendor/etc/init/hw/init.spectrum.rc
+    cp -af $AKHOME/spectrum/init.spectrum.sh /vendor/etc/init/hw/
+    chmod -R 755 /vendor/etc/init/hw/init.spectrum.sh
+  fi
+  $BB mount -o ro,remount -t auto /system;
+  $BB mount -o ro,remount -t auto /vendor 2>/dev/null;
+  fi
+}
+
 show_progress 1.34 4;
 ui_print " ";
 cleanup;
@@ -429,6 +452,7 @@ if [ $? != 0 ]; then
 fi;
 
 do_modules;
+push_spectrum;
 
 debugging;
 restore_env;

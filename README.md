@@ -15,6 +15,7 @@ kernel.string=KernelName by YourName @ xda-developers
 do.devicecheck=1
 do.modules=1
 do.systemless=1
+do.spectrum=0
 do.cleanup=1
 do.cleanuponabort=0
 device.name1=maguro
@@ -34,6 +35,8 @@ __do.devicecheck=1__ specified requires at least device.name1 to be present. Thi
 __do.modules=1__ will push the .ko contents of the modules directory to the same location relative to root (/) and apply correct permissions. On A/B devices this can only be done to the active slot.
 
 __do.systemless=1__ (with __do.modules=1__) will instead push the full contents of the modules directory to create a simple "ak3-helper" Magisk module, allowing developers to effectively replace system files, including .ko files. If the current kernel is changed then the kernel helper module automatically removes itself to prevent conflicts.
+
+__do.spectrum=1__ will push files under spectrum dir to /vendor/etc/init/hw/ and will modify init.qcom.rc after taking backup of it to add spectrum support to kernel.
 
 __do.cleanup=0__ will keep the zip from removing its working directory in /tmp/anykernel (by default) - this can be useful if trying to debug in adb shell whether the patches worked correctly.
 
