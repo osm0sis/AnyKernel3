@@ -389,6 +389,20 @@ push_spectrum(){
     chmod -R 644 /vendor/etc/init/hw/init.spectrum.rc
     cp -af $AKHOME/spectrum/init.spectrum.sh /vendor/etc/init/hw/
     chmod -R 755 /vendor/etc/init/hw/init.spectrum.sh
+  else
+    if [ -e /vendor/etc/init/hw/init.spectrum.rc ];then
+	  ui_print " " "Kernel zip Does't have spectrum. Removing old Spectrum support.";
+      rm -rf /vendor/etc/init/hw/init.spectrum.rc
+    fi
+	if [ -e /vendor/etc/init/hw/init.spectrum.sh ];then
+      rm -rf /vendor/etc/init/hw/init.spectrum.sh
+    fi
+	if [ -e /vendor/etc/init/hw/init.qcom.rc.bkp ];then
+		if [ -e /vendor/etc/init/hw/init.qcom.rc ];then
+			rm -rf /vendor/etc/init/hw/init.qcom.rc
+		fi
+      cp -af /vendor/etc/init/hw/init.qcom.rc.bkp /vendor/etc/init/hw/init.qcom.rc
+    fi
   fi
   $BB mount -o ro,remount -t auto /system;
   $BB mount -o ro,remount -t auto /vendor 2>/dev/null;
