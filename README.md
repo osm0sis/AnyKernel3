@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
-AnyKernel3 - Flashable Zip Template for Kernel Releases with Ramdisk Modifications
+.AnyKernel3 - Flashable Zip Template for Kernel Releases with Ramdisk Modifications
 ----------------------------------------------------------------------------------
 ### by osm0sis @ xda-developers ###
 
