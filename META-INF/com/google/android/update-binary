@@ -93,14 +93,16 @@ mount_all() {
   $BB mount -o ro -t auto /vendor 2>/dev/null;
   setup_mountpoint $ANDROID_ROOT;
   if ! is_mounted $ANDROID_ROOT; then
-    $BB mount -o ro -t auto $ANDROID_ROOT 2>/dev/null;
+    ## We need $ANDROID_ROOT to be mounted rw in NetHunter
+    $BB mount -o rw -t auto $ANDROID_ROOT 2>/dev/null;
   fi;
   case $ANDROID_ROOT in
     /system_root) setup_mountpoint /system;;
     /system)
       if ! is_mounted /system && ! is_mounted /system_root; then
         setup_mountpoint /system_root;
-        $BB mount -o ro -t auto /system_root;
+	## We need system_root to be mounted rw in NetHunter
+        $BB mount -o rw -t auto /system_root;
       elif [ -f /system/system/build.prop ]; then
         setup_mountpoint /system_root;
         $BB mount --move /system /system_root;
@@ -109,7 +111,8 @@ mount_all() {
         $BB umount /system;
         $BB umount -l /system 2>/dev/null;
         test -e /dev/block/bootdevice/by-name/system || local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-        $BB mount -o ro -t auto /dev/block/bootdevice/by-name/system$slot /system_root;
+	## We need system_root to be mounted rw in NetHunter
+        $BB mount -o rw -t auto /dev/block/bootdevice/by-name/system$slot /system_root;
       fi;
     ;;
   esac;
@@ -342,8 +345,13 @@ do_modules() {
       $BB mount -o rw,remount -t auto /system;
       $BB mount -o rw,remount -t auto /vendor 2>/dev/null;
     fi;
-    for module in $(find . -name '*.ko'); do
+
+    ## Adjusted for NetHunter: let's do a clean first and copy "modules.*" as well
+    local do_clean=true
+
+    for module in $(find . -name '*.ko' -o -name 'modules.*'); do
       modtarget=$POSTINSTALL$(echo $module | $BB cut -c2-);
+      ls /system_root
       if [ ! -e $modtarget ]; then
         case $module in
           */vendor/*) modcon=vendor;;
@@ -353,6 +361,15 @@ do_modules() {
       if is_mounted $modtarget; then
         $BB mount -o rw,remount -t auto $modtarget;
       fi;
+
+      ## Adjusted for NetHunter: Remove old modules directories
+      if [ "$do_clean" = true ]; then
+	existing_moddir=$(echo $modtarget | $BB sed 's/lib\/modules\/.*$/lib\/modules\//')
+        ui_print " " "Removing existing modules directories in ${existing_moddir}";
+        rm -rf ${existing_moddir}/../modules
+        do_clean=false
+      fi
+
       mkdir -p $(dirname $modtarget);
       $BB cp -rLf $module $modtarget;
       $BB chown 0:0 $modtarget;
