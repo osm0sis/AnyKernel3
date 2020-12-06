@@ -47,9 +47,19 @@ insert_line() {
   fi;
 }
 
-ui_print "--------------------------"
-ui_print "* Nexus Kernel Lavender "
-ui_print "* Initializing"
+
+ui_print "××××××××××××××××××××××××××××××××××××××××××××××"
+ui_print "                         ____  _                          "
+ui_print "                  ____ _/ __ \(_)_______                  "
+ui_print "                 / __ `/ /_/ / / ___/ _ \                 "
+ui_print "                / /_/ / _, _/ (__  )  __/                 "
+ui_print "                \__,_/_/ |_/_/____/\___/                  "
+ui_print "                                                          "
+ui_print "×××××××××××××××××××××××××××××××××××××××××××××××"
+ui_print "×              aRise Kernel Lavender              ×"
+ui_print "×××××××××××××××××××××××××××××××××××××××××××××××"
+ui_print " "
+ui_print "× Initializing parameters and properties"
 show_progress() { echo "progress $1 $2" >> $OUTFD; }
 file_getprop() { $BB grep "^$2=" "$1" | $BB tail -n1 | $BB cut -d= -f2-; }
 find_slot() {
@@ -267,7 +277,7 @@ restore_env() {
 debugging() {
   case $($BB basename "$ZIPFILE" .zip) in
     *-debugging)
-      ui_print "* Creating debugging archive in $DIR!";
+      ui_print "× Creating debugging archive in $DIR!";
       [ -f /tmp/recovery.log ] && local log=/tmp/recovery.log;
       $BB tar -czf "$DIR/anykernel3-$(date +%Y-%m-%d_%H%M%S)-debug.tgz" $AKHOME $log;
     ;;
@@ -296,14 +306,14 @@ do_devicecheck() {
   for testname in $($BB grep '^device.name.*=' anykernel.sh | $BB cut -d= -f2-); do
     for devicename in $device $product $vendordevice $vendorproduct; do
       if [ "$devicename" == "$testname" ]; then
-        ui_print "* Device recognised as $testname";
+        ui_print "× Device recognised as $testname";
         match=1;
         break 2;
       fi;
     done;
   done;
   if [ ! "$match" ]; then
-    abort "* Unsupported device. Aborting!";
+    abort "× Unsupported device. Aborting!";
   fi;
 }
 int2ver() {
@@ -318,7 +328,7 @@ int2ver() {
 do_versioncheck() {
   [ "$(file_getprop anykernel.sh supported.versions)" ] || return 1;
   local android_ver hi_ver lo_ver parsed_ver supported supported_ver;
-  ui_print "* Checking Android version";
+  ui_print "× Checking Android version";
   supported_ver=$(file_getprop anykernel.sh supported.versions | $BB tr -d '[:space:]');
   android_ver=$(file_getprop /system/build.prop ro.build.version.release);
   parsed_ver=$(int2ver $android_ver);
@@ -337,15 +347,15 @@ do_versioncheck() {
     done;
   fi;
   if [ "$supported" ]; then
-     ui_print "* Detected android version: $android_ver";
+     ui_print "× Detected android version: $android_ver";
   else
-    abort "* Unsupported Android version. Aborting!";
+    abort "× Unsupported Android version. Aborting!";
   fi;
 }
 do_levelcheck() {
   [ "$(file_getprop anykernel.sh supported.patchlevels)" ] || return 1;
   local android_lvl hi_lvl lo_lvl parsed_lvl supported_lvl;
-  ui_print "* Checking Android security patch level";
+  ui_print "× Checking Android security patch level";
   supported_lvl=$(file_getprop anykernel.sh supported.patchlevels | $BB grep -oE '[0-9]{4}-[0-9]{2}|-');
   android_lvl=$(file_getprop /system/build.prop ro.build.version.security_patch);
   parsed_lvl=$(echo $android_lvl | $BB grep -oE '[0-9]{4}-[0-9]{2}');
@@ -360,9 +370,9 @@ do_levelcheck() {
     hi_lvl=9999-99;
   fi;
   if echo -e "$hi_lvl\n$lo_lvl\n$parsed_lvl" | $BB sort -g | $BB grep -n "$parsed_lvl" | $BB grep -q '^2:'; then
-    ui_print "* Detected android patch level: $android_lvl";
+    ui_print "× Detected android patch level: $android_lvl";
   else
-    abort "* Unsupported Android security patch level. Aborting!";
+    abort "× Unsupported Android security patch level. Aborting!";
   fi;
 }
 dump_moduleinfo() {
@@ -388,7 +398,7 @@ do_modules() {
   local block modcon moddir modtarget module slot umask;
   if [ "$(file_getprop anykernel.sh do.systemless)" == 1 ]; then
     cd $AKHOME/modules;
-    ui_print "* Creating kernel helper Magisk module";
+    ui_print "× Creating kernel helper Magisk module";
     if [ -d /data/adb/magisk -a -f $AKHOME/split_img/.magisk ]; then
       umask=$(umask);
       umask 022;
@@ -403,7 +413,7 @@ do_modules() {
       $BB cp -f $AKHOME/vertmp $moddir/version;
       umask $umask;
     else
-      ui_print "* Magisk installation not found. Skipped!";
+      ui_print "× Magisk installation not found. Skipped!";
     fi;
   else
     cd $AKHOME/modules;
@@ -452,6 +462,15 @@ do_modules() {
   cd $AKHOME;
 }
 
+print_extras()
+{
+  android_ver=$(file_getprop /system/build.prop ro.build.version.release);
+  android_lvl=$(file_getprop /system/build.prop ro.build.version.security_patch);
+
+  ui_print "× Detected android version: $android_ver";
+  ui_print "× Detected android patch level: $android_lvl";
+}
+
 show_progress 1.34 5;
 ui_print "";
 cleanup;
@@ -459,7 +478,7 @@ mkdir -p $AKHOME/bin;
 cd $AKHOME;
 unzip -o "$ZIPFILE";
 if [ $? != 0 -o ! "$(ls tools)" ]; then
-  abort "* Unzip failed. Aborting!";
+  abort "× Unzip failed. Aborting!";
 fi;
 for ARCH32 in x86 arm; do
   if [ -d $AKHOME/tools/$ARCH32 ]; then
@@ -477,7 +496,7 @@ chmod 755 $BB;
 $BB chmod -R 755 tools bin;
 $BB --install -s bin;
 if [ $? != 0 -o -z "$(ls bin)" ]; then
-  abort "* Busybox setup failed. Aborting!";
+  abort "× Busybox setup failed. Aborting!";
 fi;
 
 setup_env;
@@ -485,8 +504,9 @@ setup_env;
 do_devicecheck;
 do_versioncheck;
 do_levelcheck;
+print_extras;
 
-ui_print "* Installing Linux kernel";
+ui_print "× Installing Linux kernel";
 CORE=$($BB grep -oE 'ak.*core.sh' anykernel.sh);
 [ -f tools/$CORE ] || $BB ln -s $AKHOME/tools/ak*-core.sh $AKHOME/tools/$CORE;
 PATH="$AKHOME/bin:$PATH" home=$AKHOME $BB ash anykernel.sh $2;
@@ -503,8 +523,9 @@ if [ "$(file_getprop anykernel.sh do.cleanup)" == 1 ]; then
   cleanup;
 fi;
 
-ui_print "* Successfully flashed kernel!";
-ui_print "* Thank you for using Nexus Kernel!";
-ui_print "* Powered by AnyKernel3 by osm0sis @ xda-developers";
+ui_print "× Successfully flashed kernel!";
+ui_print "× Thank you for using aRiseKernel!";
+ui_print "× Powered by AnyKernel3 by osm0sis @ xda-developers";
 $BB grep -oE 'AK_BASE.*' META-INF/com/google/android/updater-script >&2;
-ui_print "--------------------------"
+ui_print " "
+ui_print "×××××××××××××××××××××××××××××××××××××××××××××××"
