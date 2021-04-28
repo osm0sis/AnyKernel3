@@ -4,7 +4,7 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=ExampleKernel by osm0sis @ xda-developers
+kernel.string=UghTea-CRF by @D4rkKnight21
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -14,7 +14,7 @@ device.name1=platina
 device.name2=Mi8Lite
 device.name3=Mi8lite
 device.name4=8lite
-device.name5=
+device.name5=Platina
 supported.versions=
 supported.patchlevels=
 '; } # end properties
