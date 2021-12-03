@@ -477,8 +477,48 @@ flash_vendor_boot() {
   fi;
 }
 
+# flash_vendor_dlkm (flash vendor_dlkm only)
+flash_vendor_dlkm() {
+  local i vendor_dlkm vendor_dlkmblock;
+
+  cd $home;
+  for i in vendor_dlkm vendor_dlkm.img; do
+    if [ -f $i ]; then
+      vendor_dlkm=$i;
+      break;
+    fi;
+  done;
+
+  if [ "$vendor_dlkm" -a ! -f vendor_dlkm_flashed ]; then
+    vendor_dlkmblock=/dev/block/mapper/vendor_dlkm$slot;
+    if [ ! -e "$vendor_dlkmblock" ]; then
+      abort "vendor_dlkm partition could not be found. Aborting...";
+    fi;
+    if [ "$(wc -c < ${vendor_dlkm})" -gt "$(wc -c < ${vendor_dlkmblock})" ]; then
+      abort "New vendor_dlkm image larger than vendor_dlkm partition. Aborting...";
+    fi;
+    blockdev --setrw $vendor_dlkmblock 2>/dev/null;
+    ui_print " " "$vendor_dlkmblock";
+    if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
+      $bin/flash_erase $vendor_dlkmblock 0 0;
+      $bin/nandwrite -p $vendor_dlkmblock $vendor_dlkm;
+    elif [ "$customdd" ]; then
+      dd if=/dev/zero of=$vendor_dlkmblock 2>/dev/null;
+      dd if=$vendor_dlkm of=$vendor_dlkmblock;
+    else
+      cat $vendor_dlkm /dev/zero > $vendor_dlkmblock 2>/dev/null || true;
+    fi;
+    if [ $? != 0 ]; then
+      abort "Flashing vendor_dlkm failed. Aborting...";
+    fi;
+    blockdev --setro $vendor_dlkmblock 2>/dev/null;
+    touch vendor_dlkm_flashed;
+  fi;
+}
+
 ### write_boot (repack ramdisk then build, sign and write image and dtbo)
 write_boot() {
+  flash_vendor_dlkm;
   flash_vendor_boot;
   repack_ramdisk;
   flash_boot;
