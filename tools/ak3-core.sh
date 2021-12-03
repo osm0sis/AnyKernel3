@@ -441,8 +441,45 @@ flash_dtbo() {
     touch dtbo_flashed;
   fi;
 }
+
+# flash_vendor_boot (flash vendor_boot only)
+flash_vendor_boot() {
+  local i vendor_boot vendor_bootblock;
+
+  cd $home;
+  for i in vendor_boot vendor_boot.img; do
+    if [ -f $i ]; then
+      vendor_boot=$i;
+      break;
+    fi;
+  done;
+
+  if [ "$vendor_boot" -a ! -f vendor_boot_flashed ]; then
+    vendor_bootblock=/dev/block/bootdevice/by-name/vendor_boot$slot;
+    if [ ! -e "$vendor_bootblock" ]; then
+      abort "vendor_boot partition could not be found. Aborting...";
+    fi;
+    blockdev --setrw $vendor_bootblock 2>/dev/null;
+    ui_print " " "$vendor_bootblock";
+    if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
+      $bin/flash_erase $vendor_bootblock 0 0;
+      $bin/nandwrite -p $vendor_bootblock $vendor_boot;
+    elif [ "$customdd" ]; then
+      dd if=/dev/zero of=$vendor_bootblock 2>/dev/null;
+      dd if=$vendor_boot of=$vendor_bootblock;
+    else
+      cat $vendor_boot /dev/zero > $vendor_bootblock 2>/dev/null || true;
+    fi;
+    if [ $? != 0 ]; then
+      abort "Flashing vendor_boot failed. Aborting...";
+    fi;
+    touch vendor_boot_flashed;
+  fi;
+}
+
 ### write_boot (repack ramdisk then build, sign and write image and dtbo)
 write_boot() {
+  flash_vendor_boot;
   repack_ramdisk;
   flash_boot;
   flash_dtbo;
