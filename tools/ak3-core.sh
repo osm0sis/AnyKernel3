@@ -443,7 +443,9 @@ flash_generic() {
     fi;
     isro=$(blockdev --getro $imgblock 2>/dev/null);
     blockdev --setrw $imgblock 2>/dev/null;
-    ui_print " " "$imgblock";
+    if [ ! "$no_block_display" ]; then
+      ui_print " " "$imgblock";
+    fi;
     if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
       $bin/flash_erase $imgblock 0 0;
       $bin/nandwrite -p $imgblock $img;
