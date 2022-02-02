@@ -49,7 +49,7 @@ insert_line() {
 
 
 ui_print "×××××××××××××××××××××××××××××××××××××××××××××××"
-ui_print "×              aRise Kernel Lavender              ×"
+ui_print "×              Nexus Kernel Lavender              ×"
 ui_print "×××××××××××××××××××××××××××××××××××××××××××××××"
 ui_print " "
 ui_print "× Initializing parameters and properties"
@@ -517,7 +517,7 @@ if [ "$(file_getprop anykernel.sh do.cleanup)" == 1 ]; then
 fi;
 
 ui_print "× Successfully flashed kernel!";
-ui_print "× Thank you for using aRiseKernel!";
+ui_print "× Thank you for using Nexus Kernel!";
 ui_print "× Powered by AnyKernel3 by osm0sis @ xda-developers";
 $BB grep -oE 'AK_BASE.*' META-INF/com/google/android/updater-script >&2;
 ui_print " "
