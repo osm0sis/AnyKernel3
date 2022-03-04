@@ -771,7 +771,7 @@ setup_ak() {
   case $block in
     boot|recovery|vendor_boot)
       case $block in
-        boot) parttype="ramdisk boot BOOT LNX android_boot bootimg KERN-A kernel KERNEL";;
+        boot) parttype="ramdisk init_boot boot BOOT LNX android_boot bootimg KERN-A kernel KERNEL";;
         recovery) parttype="ramdisk_recovery recovery RECOVERY SOS android_recovery";;
         vendor_boot) parttype="vendor_boot";;
       esac;
