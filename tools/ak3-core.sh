@@ -351,19 +351,19 @@ flash_boot() {
             *-dtb) rm -f kernel_dtb;;
           esac;
         fi;
-        unset magisk_patched KEEPFORCEENCRYPT KEEPVERITY SHA1 TWOSTAGEINIT; # leave KEEPVBMETAFLAG set for repack
+        unset magisk_patched KEEPFORCEENCRYPT KEEPVERITY SHA1 TWOSTAGEINIT; # leave PATCHVBMETAFLAG set for repack
       ;;
     esac;
     case $ramdisk_compression in
       none|cpio) nocompflag="-n";;
     esac;
-    case $keep_vbmeta_flag in
-      auto|"") [ "$KEEPVBMETAFLAG" ] || export KEEPVBMETAFLAG=false;;
-      1) export KEEPVBMETAFLAG=true;;
-      *) export KEEPVBMETAFLAG=false;;
+    case $patch_vbmeta_flag in
+      auto|"") [ "$PATCHVBMETAFLAG" ] || export PATCHVBMETAFLAG=false;;
+      1) export PATCHVBMETAFLAG=true;;
+      *) export PATCHVBMETAFLAG=false;;
     esac;
     $bin/magiskboot repack $nocompflag $bootimg $home/boot-new.img;
-    unset KEEPVBMETAFLAG;
+    unset PATCHVBMETAFLAG;
   fi;
   if [ $? != 0 ]; then
     abort "× Repacking image failed. Aborting!";
@@ -438,7 +438,9 @@ flash_generic() {
     fi;
     isro=$(blockdev --getro $imgblock 2>/dev/null);
     blockdev --setrw $imgblock 2>/dev/null;
-    ui_print " " "$imgblock";
+    if [ ! "$no_block_display" ]; then
+      ui_print " " "$imgblock";
+    fi;
     if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
       $bin/flash_erase $imgblock 0 0;
       $bin/nandwrite -p $imgblock $img;
@@ -608,7 +610,7 @@ replace_file() {
 # patch_fstab <fstab file> <mount match name> <fs match type> block|mount|fstype|options|flags <original string> <replacement string>
 patch_fstab() {
   local entry part newpart newentry;
-  entry=$(grep "$2" $1 | grep "$3");
+  entry=$(grep "$2[[:space:]]" $1 | grep "$3");
   if [ ! "$(echo "$entry" | grep "$6")" -o "$6" == " " -o ! "$6" ]; then
     case $4 in
       block) part=$(echo "$entry" | awk '{ print $1 }');;
@@ -764,7 +766,7 @@ setup_ak() {
   case $block in
     boot|recovery|vendor_boot)
       case $block in
-        boot) parttype="ramdisk boot BOOT LNX android_boot bootimg KERN-A kernel KERNEL";;
+        boot) parttype="ramdisk init_boot boot BOOT LNX android_boot bootimg KERN-A kernel KERNEL";;
         recovery) parttype="ramdisk_recovery recovery RECOVERY SOS android_recovery";;
         vendor_boot) parttype="vendor_boot";;
       esac;
