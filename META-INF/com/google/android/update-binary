@@ -321,6 +321,33 @@ do_versioncheck() {
     abort " " "Unsupported Android version. Aborting...";
   fi;
 }
+do_sdkcheck() {
+  [ "$(file_getprop anykernel.sh supported.sdk)" ] || return 1;
+  local android_sdk hi_sdk lo_sdk parsed_sdk supported supported_sdk;
+  ui_print "Checking SDK version...";
+  supported_sdk=$(file_getprop anykernel.sh supported.sdk | $BB tr -d '[:space:]');
+  android_sdk=$(file_getprop /system/build.prop ro.build.version.sdk);
+  parsed_sdk=$(int2ver $android_sdk);
+  if echo $supported_sdk | $BB grep -q '-'; then
+    lo_sdk=$(int2ver "$(echo $supported_sdk | $BB cut -d- -f1)");
+    hi_sdk=$(int2ver "$(echo $supported_sdk | $BB cut -d- -f2)");
+    if echo -e "$hi_sdk\n$lo_sdk\n$parsed_sdk" | $BB sort -g | $BB grep -n "$parsed_sdk" | $BB grep -q '^2:'; then
+      supported=1;
+    fi;
+  else
+    for sdk in $(echo $supported_sdk | $BB sed 's;,; ;g'); do
+      if [ "$(int2ver $sdk)" == "$parsed_sdk" ]; then
+        supported=1;
+        break;
+      fi;
+    done;
+  fi;
+  if [ "$supported" ]; then
+    ui_print "$android_sdk" " ";
+  else
+    abort " " "Unsupported sdk version. Aborting...";
+  fi;
+}
 do_levelcheck() {
   [ "$(file_getprop anykernel.sh supported.patchlevels)" ] || return 1;
   local android_lvl hi_lvl lo_lvl parsed_lvl supported_lvl;
@@ -479,6 +506,7 @@ setup_env;
 
 do_devicecheck;
 do_versioncheck;
+do_sdkcheck;
 do_levelcheck;
 
 ui_print "Installing...";

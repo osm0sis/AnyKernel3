@@ -16,6 +16,7 @@ device.name3=toroplus
 device.name4=tuna
 device.name5=
 supported.versions=
+supported.sdk=
 supported.patchlevels=
 '; } # end properties
 
