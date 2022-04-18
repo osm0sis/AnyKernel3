@@ -415,7 +415,7 @@ flash_boot() {
 
 # flash_generic <name>
 flash_generic() {
-  local file img imgblock isro path islp devname;
+  local file img imgblock isro path islp;
 
   cd $home;
   for file in $1 $1.img; do
@@ -439,35 +439,10 @@ flash_generic() {
     fi;
     if [ $path = /dev/block/mapper ]; then
       islp=true
-      if [ -e $path/$1-verity ]; then
-        devname=$($BB realpath $path/$1-verity);
-      else
-        devname=$($BB realpath $imgblock);
-      fi
-      if $($BB mount | $BB grep -q "^$devname "); then
-        $BB umount $devname;
-        if [ $? != 0 ]; then
-          abort "Unmounting $1 failed. Aborting...";
-        fi
-      fi
-      if [ -e $path/$1-verity ]; then
-        $bin/lptools unmap $1-verity;
-        if [ $? != 0 ]; then
-          abort "Unmapping $1-verity failed. Aborting...";
-        fi
-      fi
-      $bin/lptools unmap $1$slot;
-      if [ $? != 0 ]; then
-          abort "Unmapping $1$slot failed. Aborting...";
-      fi
-      $bin/lptools resize $1$slot $(wc -c < $img)
-      if [ $? != 0 ]; then
-          abort "Resizing $1$slot failed. Aborting...";
-      fi
-      $bin/lptools map $1$slot;
-      if [ $? != 0 ]; then
-        abort "Remapping $1$slot failed. Aborting...";
-      fi
+      $bin/lptools remove $1_ak3
+      $bin/lptools create $1_ak3 $(wc -c < $img)
+      $bin/lptools unmap $1_ak3
+      imgblock=$($bin/lptools map $1_ak3 | $BB grep -oE '/dev/block/[^ ]*')
     fi
     isro=$(blockdev --getro $imgblock 2>/dev/null);
     blockdev --setrw $imgblock 2>/dev/null;
@@ -490,11 +465,7 @@ flash_generic() {
       blockdev --setro $imgblock 2>/dev/null;
     fi;
     if [ $islp = true ]; then
-      devname=$($BB realpath $imgblock);
-      $BB mount -t ext4 -o ro,barrier=1 $devname /$1;
-      if [ $? != 0 ]; then
-        abort "Mounting $1 failed. Aborting...";
-      fi
+      $bin/lptools replace $1_ak3 $1$slot
     fi
     touch ${1}_flashed;
   fi;
