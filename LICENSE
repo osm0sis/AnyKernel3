@@ -75,7 +75,7 @@ busybox: GPLv2
     https://github.com/osm0sis/android-busybox-ndk
     (pre-patched source tree used to build available upon request)
 
-lptools: Apache License 2.0
+lptools_static: Apache License 2.0
 
     Copyright (C) 2020 Pierre-Hugues Husson <phh@phh.me>
 
@@ -91,7 +91,7 @@ lptools: Apache License 2.0
     See the License for the specific language governing permissions and
     limitations under the License.
 
-    Source not required, however, respective sources are provided:
+    Source not required, however, respective source is provided:
     https://github.com/phhusson/vendor_lptools
 
 
