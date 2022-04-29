@@ -415,7 +415,7 @@ flash_boot() {
 
 # flash_generic <name>
 flash_generic() {
-  local file img imgblock isro path islp;
+  local file img imgblock islp isro path;
 
   cd $home;
   for file in $1 $1.img; do
@@ -438,9 +438,9 @@ flash_generic() {
       abort "$1 partition could not be found. Aborting...";
     fi;
     if [ "$(wc -c < $img)" -gt "$(wc -c < $imgblock)" ]; then
-      [ $path == /dev/block/mapper ] || abort "New $1 image larger than $1 partition. Aborting...";
-      islp=true;
-      $bin/lptools_static remove $1_ak3
+      [ "$path" == "/dev/block/mapper" ] || abort "New $1 image larger than $1 partition. Aborting...";
+      islp=1;
+      $bin/lptools_static remove $1_ak3;
       $bin/lptools_static create $1_ak3 $(wc -c < $img) || abort "Creating $1_ak3 failed. Aborting...";
       $bin/lptools_static unmap $1_ak3 || abort "Unmapping $1_ak3 failed. Aborting...";
       $bin/lptools_static map $1_ak3 || abort "Mapping $1_ak3 failed. Aborting...";
@@ -466,7 +466,7 @@ flash_generic() {
     if [ "$isro" != 0 ]; then
       blockdev --setro $imgblock 2>/dev/null;
     fi;
-    if [ $islp == true ]; then
+    if [ "$islp" ]; then
       $bin/lptools_static replace $1_ak3 $1$slot || abort "Replacing $1$slot failed. Aborting...";
     fi
     touch ${1}_flashed;
@@ -480,8 +480,8 @@ flash_dtbo() { flash_generic dtbo; }
 write_boot() {
   repack_ramdisk;
   flash_boot;
-  flash_generic vendor_dlkm;
   flash_generic vendor_boot; # temporary until hdr v4 can be unpacked/repacked fully by magiskboot
+  flash_generic vendor_dlkm;
   flash_generic dtbo;
 }
 ###
