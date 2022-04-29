@@ -437,14 +437,15 @@ flash_generic() {
     if [ ! "$imgblock" ]; then
       abort "$1 partition could not be found. Aborting...";
     fi;
-    if [ "$(wc -c < $img)" -gt "$(wc -c < $imgblock)" ]; then
-      [ "$path" == "/dev/block/mapper" ] || abort "New $1 image larger than $1 partition. Aborting...";
+    if [ "$path" == "/dev/block/mapper" ]; then
       islp=1;
       $bin/lptools_static remove $1_ak3;
       $bin/lptools_static create $1_ak3 $(wc -c < $img) || abort "Creating $1_ak3 failed. Aborting...";
       $bin/lptools_static unmap $1_ak3 || abort "Unmapping $1_ak3 failed. Aborting...";
       $bin/lptools_static map $1_ak3 || abort "Mapping $1_ak3 failed. Aborting...";
       imgblock=/dev/block/mapper/$1_ak3;
+    elif [ "$(wc -c < $img)" -gt "$(wc -c < $imgblock)" ]; then
+      abort "New $1 image larger than $1 partition. Aborting...";
     fi;
     isro=$(blockdev --getro $imgblock 2>/dev/null);
     blockdev --setrw $imgblock 2>/dev/null;
@@ -468,7 +469,7 @@ flash_generic() {
     fi;
     if [ "$islp" ]; then
       $bin/lptools_static replace $1_ak3 $1$slot || abort "Replacing $1$slot failed. Aborting...";
-    fi
+    fi;
     touch ${1}_flashed;
   fi;
 }
