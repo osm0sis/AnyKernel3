@@ -346,6 +346,7 @@ do_levelcheck() {
 }
 dump_moduleinfo() {
 $BB cat <<EOF > $1;
+id=ak3-helper
 name=AK3 Helper Module
 version=$($BB awk '{ print $3 }' $AKHOME/vertmp) $($BB grep -oE '#.[0-9]' $AKHOME/vertmp)
 versionCode=1
