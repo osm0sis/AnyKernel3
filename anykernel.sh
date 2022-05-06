@@ -4,13 +4,13 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=Stock+ by 100Daisy
+kernel.string=StockGuamp by 100Daisy
 do.devicecheck=1
 do.modules=0
 do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=deen
+device.name1=guamp
 supported.versions=
 supported.patchlevels=
 '; } # end properties
