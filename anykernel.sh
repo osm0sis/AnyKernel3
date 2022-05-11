@@ -4,7 +4,7 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=StockGuamp by 100Daisy
+kernel.string=DaisyKernel by 100Daisy
 do.devicecheck=1
 do.modules=0
 do.systemless=1
