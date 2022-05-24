@@ -11,6 +11,7 @@ do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
 device.name1=guamp
+device.name2=cebu
 supported.versions=
 supported.patchlevels=
 '; } # end properties
