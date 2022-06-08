@@ -415,7 +415,7 @@ flash_boot() {
 
 # flash_generic <name>
 flash_generic() {
-  local file img imgblock isro path avb flags avbblock;
+  local avb avbblock file flags img imgblock isro path;
 
   cd $home;
   for file in $1 $1.img; do
