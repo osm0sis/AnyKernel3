@@ -770,7 +770,7 @@ setup_ak() {
   # clean up any template placeholder files
   cd $home;
   rm -f modules/system/lib/modules/placeholder patch/placeholder ramdisk/placeholder;
-  rmdir -p modules patch ramdisk;
+  rmdir -p modules patch ramdisk 2>/dev/null;
 
   # automate simple multi-partition setup for boot_img_hdr_v3 + vendor_boot
   if [ -e "/dev/block/bootdevice/by-name/vendor_boot$slot" -a ! -f vendor_setup ] && [ -f dtb -o -d vendor_ramdisk -o -d vendor_patch ]; then
