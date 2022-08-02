@@ -459,8 +459,7 @@ flash_generic() {
         fi
       fi
       $bin/lptools_static remove $1_ak3;
-      $bin/lptools_static create $1_ak3 $(wc -c < $img);
-      if [ $? == 0 ]; then
+      if $bin/lptools_static create $1_ak3 $(wc -c < $img); then
         $bin/lptools_static unmap $1_ak3 || abort "Unmapping $1_ak3 failed. Aborting...";
         $bin/lptools_static map $1_ak3 || abort "Mapping $1_ak3 failed. Aborting...";
         $bin/lptools_static replace $1_ak3 $1$slot || abort "Replacing $1$slot failed. Aborting...";
