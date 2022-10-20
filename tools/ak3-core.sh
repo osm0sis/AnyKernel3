@@ -508,12 +508,12 @@ flash_generic() {
 # flash_dtbo (backwards compatibility for flash_generic)
 flash_dtbo() { flash_generic dtbo; }
 
-### write_boot (repack ramdisk then build, sign and write image, vendor_dlkm/vendor_kernel_boot and dtbo)
+### write_boot (repack ramdisk then build, sign and write image, vendor_dlkm and dtbo)
 write_boot() {
   repack_ramdisk;
   flash_boot;
   flash_generic vendor_boot; # temporary until hdr v4 can be unpacked/repacked fully by magiskboot
-  flash_generic vendor_kernel_boot;
+  flash_generic vendor_kernel_boot; # temporary until hdr v4 can be unpacked/repacked fully by magiskboot
   flash_generic vendor_dlkm;
   flash_generic dtbo;
 }
