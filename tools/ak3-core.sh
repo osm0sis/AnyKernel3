@@ -415,7 +415,7 @@ flash_boot() {
 
 # flash_generic <name>
 flash_generic() {
-  local avb avbblock avbpath file flags img imgblock isro isunmounted path;
+  local avb avbblock avbpath file flags img imgblock imgblocksz imgsz isro isunmounted path;
 
   cd $home;
   for file in $1 $1.img; do
@@ -461,25 +461,34 @@ flash_generic() {
           cd $home;
         fi
       fi
-      echo "Removing any existing $1_ak3..." >&2;
-      $bin/lptools_static remove $1_ak3;
-      echo "Attempting to create $1_ak3..." >&2;
-      if $bin/lptools_static create $1_ak3 $(wc -c < $img); then
-        echo "Replacing $1$slot with $1_ak3..." >&2;
-        $bin/lptools_static unmap $1_ak3 || abort "Unmapping $1_ak3 failed. Aborting...";
-        $bin/lptools_static map $1_ak3 || abort "Mapping $1_ak3 failed. Aborting...";
-        $bin/lptools_static replace $1_ak3 $1$slot || abort "Replacing $1$slot failed. Aborting...";
-        imgblock=/dev/block/mapper/$1_ak3;
-      else
-        echo "Creating $1_ak3 failed. Attempting to resize $1$slot..." >&2;
-        $bin/httools_static umount $1 || abort "Unmounting $1 failed. Aborting...";
-        if [ -e $path/$1-verity ]; then
-          $bin/lptools_static unmap $1-verity || abort "Unmapping $1-verity failed. Aborting...";
+      imgsz=$(wc -c < $img);
+      imgblocksz=$(wc -c < $imgblock);
+      if [ "$imgsz" != "$imgblocksz" ]; then
+        if [ -d /postinstall/tmp -a "$slot_select" == "inactive" ]; then
+          $bin/snapshotupdater_static update $1 $imgsz || abort "Updating snapshot $1$slot failed. Aborting...";
+        else
+          echo "Removing any existing $1_ak3..." >&2;
+          $bin/lptools_static remove $1_ak3;
+          echo "Attempting to create $1_ak3..." >&2;
+          if $bin/lptools_static create $1_ak3 $(wc -c < $img); then
+            echo "Replacing $1$slot with $1_ak3..." >&2;
+            $bin/lptools_static unmap $1_ak3 || abort "Unmapping $1_ak3 failed. Aborting...";
+            $bin/lptools_static map $1_ak3 || abort "Mapping $1_ak3 failed. Aborting...";
+            $bin/lptools_static replace $1_ak3 $1$slot || abort "Replacing $1$slot failed. Aborting...";
+            imgblock=/dev/block/mapper/$1_ak3;
+            ui_print " " "Warning: $1$slot replaced on disk. A reboot is strongly suggested.";
+          else
+            echo "Creating $1_ak3 failed. Attempting to resize $1$slot..." >&2;
+            $bin/httools_static umount $1 || abort "Unmounting $1 failed. Aborting...";
+            if [ -e $path/$1-verity ]; then
+              $bin/lptools_static unmap $1-verity || abort "Unmapping $1-verity failed. Aborting...";
+            fi
+            $bin/lptools_static unmap $1$slot || abort "Unmapping $1$slot failed. Aborting...";
+            $bin/lptools_static resize $1$slot $(wc -c < $img) || abort "Resizing $1$slot failed. Aborting...";
+            $bin/lptools_static map $1$slot || abort "Mapping $1$slot failed. Aborting...";
+            isunmounted=1;
+          fi
         fi
-        $bin/lptools_static unmap $1$slot || abort "Unmapping $1$slot failed. Aborting...";
-        $bin/lptools_static resize $1$slot $(wc -c < $img) || abort "Resizing $1$slot failed. Aborting...";
-        $bin/lptools_static map $1$slot || abort "Mapping $1$slot failed. Aborting...";
-        isunmounted=1;
       fi
     elif [ "$(wc -c < $img)" -gt "$(wc -c < $imgblock)" ]; then
       abort "New $1 image larger than $1 partition. Aborting...";
