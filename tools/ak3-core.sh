@@ -415,7 +415,7 @@ flash_boot() {
 
 # flash_generic <name>
 flash_generic() {
-  local avb avbblock avbpath file flags img imgblock imgblocksz imgsz isro isunmounted path;
+  local avb avbblock avbpath file flags img imgblock imgsz isro isunmounted path;
 
   cd $home;
   for file in $1 $1.img; do
@@ -462,15 +462,14 @@ flash_generic() {
         fi
       fi
       imgsz=$(wc -c < $img);
-      imgblocksz=$(wc -c < $imgblock);
-      if [ "$imgsz" != "$imgblocksz" ]; then
+      if [ "$imgsz" != "$(wc -c < $imgblock)" ]; then
         if [ -d /postinstall/tmp -a "$slot_select" == "inactive" ]; then
           $bin/snapshotupdater_static update $1 $imgsz || abort "Updating snapshot $1$slot failed. Aborting...";
         else
           echo "Removing any existing $1_ak3..." >&2;
           $bin/lptools_static remove $1_ak3;
           echo "Attempting to create $1_ak3..." >&2;
-          if $bin/lptools_static create $1_ak3 $(wc -c < $img); then
+          if $bin/lptools_static create $1_ak3 $imgsz; then
             echo "Replacing $1$slot with $1_ak3..." >&2;
             $bin/lptools_static unmap $1_ak3 || abort "Unmapping $1_ak3 failed. Aborting...";
             $bin/lptools_static map $1_ak3 || abort "Mapping $1_ak3 failed. Aborting...";
@@ -484,7 +483,7 @@ flash_generic() {
               $bin/lptools_static unmap $1-verity || abort "Unmapping $1-verity failed. Aborting...";
             fi
             $bin/lptools_static unmap $1$slot || abort "Unmapping $1$slot failed. Aborting...";
-            $bin/lptools_static resize $1$slot $(wc -c < $img) || abort "Resizing $1$slot failed. Aborting...";
+            $bin/lptools_static resize $1$slot $imgsz || abort "Resizing $1$slot failed. Aborting...";
             $bin/lptools_static map $1$slot || abort "Mapping $1$slot failed. Aborting...";
             isunmounted=1;
           fi
