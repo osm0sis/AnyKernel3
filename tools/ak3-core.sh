@@ -464,7 +464,8 @@ flash_generic() {
       imgsz=$(wc -c < $img);
       if [ "$imgsz" != "$(wc -c < $imgblock)" ]; then
         if [ -d /postinstall/tmp -a "$slot_select" == "inactive" ]; then
-          $bin/snapshotupdater_static update $1 $imgsz || abort "Updating snapshot $1$slot failed. Aborting...";
+          echo "Resizing $1$slot snapshot..." >&2;
+          $bin/snapshotupdater_static update $1 $imgsz || abort "Resizing $1$slot snapshot failed. Aborting...";
         else
           echo "Removing any existing $1_ak3..." >&2;
           $bin/lptools_static remove $1_ak3;
@@ -475,7 +476,7 @@ flash_generic() {
             $bin/lptools_static map $1_ak3 || abort "Mapping $1_ak3 failed. Aborting...";
             $bin/lptools_static replace $1_ak3 $1$slot || abort "Replacing $1$slot failed. Aborting...";
             imgblock=/dev/block/mapper/$1_ak3;
-            ui_print " " "Warning: $1$slot replaced on disk. A reboot is strongly suggested.";
+            ui_print " " "Warning: $1$slot replaced in super. Reboot before further logical partition operations.";
           else
             echo "Creating $1_ak3 failed. Attempting to resize $1$slot..." >&2;
             $bin/httools_static umount $1 || abort "Unmounting $1 failed. Aborting...";
