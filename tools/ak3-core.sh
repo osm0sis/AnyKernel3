@@ -470,6 +470,8 @@ flash_generic() {
         else
           echo "Removing any existing $1_ak3..." >&2;
           $bin/lptools_static remove $1_ak3;
+          echo "Clearing any merged cow partitions..." >&2;
+          $bin/lptools_static clear-cow;
           echo "Attempting to create $1_ak3..." >&2;
           if $bin/lptools_static create $1_ak3 $imgsz; then
             echo "Replacing $1$slot with $1_ak3..." >&2;
