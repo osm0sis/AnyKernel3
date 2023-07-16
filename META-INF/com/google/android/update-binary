@@ -385,28 +385,63 @@ cat <<'EOF' > $1;
 MODDIR=${0%/*};
 if [ "$(cat /proc/version)" != "$(cat $MODDIR/version)" ]; then
   rm -rf $MODDIR;
+  exit;
 fi;
+rm -f $MODDIR/update;
+. $MODDIR/post-fs-data.2.sh;
 EOF
 }
 do_modules() {
   [ "$(file_getprop anykernel.sh do.modules)" == 1 ] || return 1;
-  local block modcon moddir modtarget module slot umask;
+  local block modcon moddir modtarget module slot umask umountksu;
   if [ "$(file_getprop anykernel.sh do.systemless)" == 1 ]; then
+    if [ ! -d /data/adb -o ! -d /data/data/android ]; then
+      ui_print " " "Warning: No /data access for kernel helper systemless module!";
+      return 1;
+    fi;
     cd $AKHOME/modules;
     ui_print " " "Creating kernel helper systemless module...";
-    if [ -d /data/adb/magisk -a -f $AKHOME/magisk_patched ] || [ -d /data/adb/ksu -a -f $AKHOME/kernelsu_patched ]; then
+    if [ -d /data/adb/magisk -a -f $AKHOME/magisk_patched ] || [ -d /data/data/me.weishu.kernelsu -a -f $AKHOME/kernelsu_patched ]; then
       umask=$(umask);
-      umask 022;
       moddir=/data/adb/modules/ak3-helper;
+      # this may be the initial KernelSU install or first module so setup as needed
+      if [ -f $AKHOME/kernelsu_patched ]; then
+        umask 077;
+        if [ ! -d /data/adb/modules ]; then
+          mkdir -p /data/adb/modules;
+          chmod 777 /data/adb/modules;
+        fi;
+        [ -d /data/adb/modules_update ] || mkdir -p /data/adb/modules_update;
+        [ -d /data/adb/ksu ] || mkdir -p /data/adb/ksu;
+        [ -f /data/adb/ksu/modules.img ] && cp -f /data/adb/ksu/modules.img /data/adb/ksu/modules_update.img;
+        if [ ! -f /data/adb/ksu/modules_update.img ]; then
+          /system/bin/make_ext4fs -b 1024 -l 256M /data/adb/ksu/modules_update.img 2>/dev/null \
+            || /system/bin/mke2fs -b 1024 -t ext4 /data/adb/ksu/modules_update.img 256M;
+        fi;
+        mount -t ext4 -o rw /data/adb/ksu/modules_update.img /data/adb/modules_update && umountksu=1;
+        touch /data/adb/ksu/update;
+        umask 022;
+        rm -rf $moddir;
+        mkdir -p $moddir;
+        dump_moduleinfo $moddir/module.prop;
+        touch $moddir/update;
+        moddir=/data/adb/modules_update/ak3-helper;
+      fi;
+      umask 022;
       rm -rf $moddir;
       mkdir -p system $moddir;
       (mv -f product system;
-      mv -f vendor system) 2>/dev/null;
+      mv -f vendor system;
+      mv -f system_ext system;
+      mv -f post-fs-data.sh post-fs-data.2.sh) 2>/dev/null;
       cp -rLf * $moddir;
       dump_moduleinfo $moddir/module.prop;
       dump_moduleremover $moddir/post-fs-data.sh;
       cp -f $AKHOME/vertmp $moddir/version;
+      touch $moddir/update;
       umask $umask;
+      chcon -hR "u:object_r:system_file:s0" $moddir;
+      [ "$umountksu" ] && umount /data/adb/modules_update;
     else
       ui_print "Magisk/KernelSU installation not found. Skipped!";
     fi;
