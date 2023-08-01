@@ -440,7 +440,7 @@ do_modules() {
       cp -f $AKHOME/vertmp $moddir/version;
       touch $moddir/update;
       umask $umask;
-      chcon -hR "u:object_r:system_file:s0" $moddir;
+      /system/bin/chcon -hR "u:object_r:system_file:s0" $moddir;
       [ "$umountksu" ] && umount /data/adb/modules_update;
     else
       ui_print "Magisk/KernelSU installation not found. Skipped!";
@@ -477,7 +477,7 @@ do_modules() {
       chown 0:0 $modtarget;
       chmod 644 $modtarget;
       if [ "$modcon" ]; then
-        chcon "u:object_r:${modcon}_file:s0" $modtarget;
+        /system/bin/chcon "u:object_r:${modcon}_file:s0" $modtarget;
       fi;
       if is_mounted $modtarget; then
         mount -o ro,remount -t auto $modtarget;
