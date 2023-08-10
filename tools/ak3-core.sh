@@ -848,17 +848,6 @@ setup_ak() {
     touch vendor_v3_setup;
   fi;
 
-  # allow multi-partition ramdisk modifying configurations (using reset_ak)
-  if [ "$block" ] && [ ! -d "$ramdisk" -a ! -d "$patch" ]; then
-    blockfiles=$home/$(basename $block)-files;
-    if [ "$(ls $blockfiles 2>/dev/null)" ]; then
-      cp -af $blockfiles/* $home;
-    else
-      mkdir $blockfiles;
-    fi;
-    touch $blockfiles/current;
-  fi;
-
   # target block partition detection enabled by block=<partition filename> or auto (from anykernel.sh)
   case $block in
     /dev/*)
@@ -915,6 +904,22 @@ setup_ak() {
   if [ ! "$no_block_display" ]; then
     ui_print "$block";
   fi;
+  
+  # allow multi-partition ramdisk modifying configurations (using reset_ak)
+  name=$(basename $block | sed -e 's/_a$//' -e 's/_b$//');
+  if [ "$block" ] && [ ! -d "$ramdisk" -a ! -d "$patch" ]; then
+    blockfiles=$home/$name-files;
+    if [ "$(ls $blockfiles 2>/dev/null)" ]; then
+      cp -af $blockfiles/* $home;
+    else
+      mkdir $blockfiles;
+    fi;
+    touch $blockfiles/current;
+  fi;
+
+  # run attributes function for current block if it exists
+  type attributes >/dev/null 2>&1 && attributes; # backwards compatibility
+  type ${name}_attributes >/dev/null 2>&1 && ${name}_attributes;
 }
 ###
 
