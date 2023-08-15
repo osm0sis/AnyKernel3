@@ -212,8 +212,10 @@ repack_ramdisk() {
   [ $? != 0 ] && packfail=1;
 
   cd $home;
-  $bin/magiskboot cpio ramdisk-new.cpio test;
-  magisk_patched=$?;
+  if [ ! "$no_magisk_check" ]; then
+    $bin/magiskboot cpio ramdisk-new.cpio test;
+    magisk_patched=$?;
+  fi;
   [ $((magisk_patched & 3)) -eq 1 ] && $bin/magiskboot cpio ramdisk-new.cpio "extract .backup/.magisk $split_img/.magisk";
   if [ "$comp" ]; then
     $bin/magiskboot compress=$comp ramdisk-new.cpio;
@@ -315,7 +317,7 @@ flash_boot() {
     done;
     case $kernel in
       *Image*)
-        if [ ! "$magisk_patched" ]; then
+        if [ ! "$magisk_patched" -a ! "$no_magisk_check" ]; then
           $bin/magiskboot cpio ramdisk.cpio test;
           magisk_patched=$?;
         fi;
