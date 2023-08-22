@@ -369,6 +369,29 @@ do_levelcheck() {
     abort " " "Unsupported Android security patch level. Aborting...";
   fi;
 }
+do_vendorlevelcheck() {
+  [ "$(file_getprop anykernel.sh supported.vendorpatchlevels)" ] || return 1;
+  local vendor_lvl hi_lvl lo_lvl parsed_lvl supported_lvl;
+  ui_print "Checking Vendor security patch level...";
+  supported_lvl=$(file_getprop anykernel.sh supported.vendorpatchlevels | grep -oE '[0-9]{4}-[0-9]{2}|-');
+  vendor_lvl=$(file_getprop /vendor/build.prop ro.vendor.build.security_patch);
+  parsed_lvl=$(echo $vendor_lvl | grep -oE '[0-9]{4}-[0-9]{2}');
+  if echo $supported_lvl | grep -q '^\-'; then
+    lo_lvl=0000-00;
+    hi_lvl=$(echo $supported_lvl | awk '{ print $2 }');
+  elif echo $supported_lvl | grep -q ' - '; then
+    lo_lvl=$(echo $supported_lvl | awk '{ print $1 }');
+    hi_lvl=$(echo $supported_lvl | awk '{ print $3 }');
+  elif echo $supported_lvl | grep -q '\-$'; then
+    lo_lvl=$(echo $supported_lvl | awk '{ print $1 }');
+    hi_lvl=9999-99;
+  fi;
+  if echo -e "$hi_lvl\n$lo_lvl\n$parsed_lvl" | sort -g | grep -n "$parsed_lvl" | grep -q '^2:'; then
+    ui_print "$vendor_lvl" " ";
+  else
+    abort " " "Unsupported Vendor security patch level. Aborting...";
+  fi;
+}
 dump_moduleinfo() {
 cat <<EOF > $1;
 id=ak3-helper
@@ -529,6 +552,7 @@ setup_env;
 do_devicecheck;
 do_versioncheck;
 do_levelcheck;
+do_vendorlevelcheck;
 
 ui_print "Installing...";
 # hack to maintain support for anykernel.sh files that weren't updated correctly along with the AK core
