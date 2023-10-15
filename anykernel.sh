@@ -7,7 +7,7 @@
 properties() { '
 kernel.string=stoKernel with su for timelm by Fodor @ IminatoPo # 请自行填写内核名字
 do.devicecheck=0 # 关闭了设备检测
-do.devicecheck=1
+#do.devicecheck=1
 do.modules=0
 do.systemless=1
 do.cleanup=1
