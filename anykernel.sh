@@ -32,8 +32,8 @@ set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
 
 
 # boot shell variables
-#block=/dev/block/bootdevice/by-name/boot;
-block=boot;  # 刷写分区是boot
+block=/dev/block/bootdevice/by-name/boot;
+#block=boot;  # 刷写分区是boot
 is_slot_device=1; # $ adb shell \ $getprop | grep ab_up
 #is_slot_device=auto; # 自动检测是否AB插槽
 ramdisk_compression=auto;
