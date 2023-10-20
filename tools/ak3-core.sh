@@ -570,6 +570,7 @@ write_boot() {
   flash_generic vendor_boot; # temporary until hdr v4 can be unpacked/repacked fully by magiskboot
   flash_generic vendor_kernel_boot; # temporary until hdr v4 can be unpacked/repacked fully by magiskboot
   flash_generic vendor_dlkm;
+  flash_generic system_dlkm;
   flash_generic dtbo;
 }
 ###
