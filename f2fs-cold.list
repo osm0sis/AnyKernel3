@@ -1,0 +1,83 @@
+# Video
+avi
+divx
+flv
+m2ts
+m4p
+m4v
+mkv
+mov
+ts
+vob
+webm
+3gp
+video
+
+# Audio
+aac
+ac3
+dts
+flac
+m4a
+mka
+wav
+
+# Image
+bmp
+gif
+png
+svg
+webp
+
+# Archive
+7z
+deb
+gz
+iso
+jar
+lzma
+rar
+tgz
+txz
+udf
+xz
+lz4
+zst
+bz2
+zip
+tar
+
+# Other
+pdf
+asx
+asf
+svi
+wvx
+
+# Python bytecode
+pyc
+
+# Fonts
+otf
+ttf
+ttc
+
+# Common prefixes
+# Covers jpg, jpeg, jp2
+jp
+# Covers mp3, mp4, mpeg, mpg
+mp
+# Covers oga, ogg, ogm, ogv
+og
+# Covers wma, wmb, wmv, wmx
+wm
+
+# Android
+apk
+odex
+vdex
+so
+# Image alias
+cnt
+# YouTube cache
+exo

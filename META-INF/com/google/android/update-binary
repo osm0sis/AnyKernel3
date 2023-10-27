@@ -2,8 +2,8 @@
 # AnyKernel3 Backend (DO NOT CHANGE)
 # osm0sis @ xda-developers
 
-export OUTFD=$2;
-export ZIPFILE="$3";
+OUTFD=/proc/self/fd/$2;
+ZIPFILE="$3";
 
 BOOTMODE=false;
 ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true;
@@ -11,193 +11,144 @@ $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMO
 
 DIR=/sdcard;
 $BOOTMODE || DIR=$(dirname "$ZIPFILE");
-[ $DIR == "/sideload" ] && DIR=/tmp;
 
-[ -d /postinstall/tmp ] && POSTINSTALL=/postinstall;
-[ "$AKHOME" ] || export AKHOME=$POSTINSTALL/tmp/anykernel;
-[ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
+test -d /postinstall/tmp && POSTINSTALL=/postinstall;
+test "$AKHOME" || AKHOME=$POSTINSTALL/tmp/anykernel;
+test "$ANDROID_ROOT" || ANDROID_ROOT=/system;
 
 ui_print() {
   until [ ! "$1" ]; do
     echo "ui_print $1
-      ui_print" >> /proc/self/fd/$OUTFD;
+      ui_print" >> $OUTFD;
     shift;
   done;
 }
 ui_printfile() {
-  local line losrpad;
-  $BOOTMODE || [ -e /twres ] || losrpad='| '; # work around LOS Recovery eating leading whitespace
-  while IFS='' read -r line || [[ -n "$line" ]]; do
-    ui_print "$losrpad$line";
+  while IFS='' read -r line || $BB [[ -n "$line" ]]; do
+    ui_print "$line";
   done < $1;
 }
-show_progress() { echo "progress $1 $2" >> /proc/self/fd/$OUTFD; }
-file_getprop() { grep "^$2=" "$1" | tail -n1 | cut -d= -f2-; }
-find_slot() {
-  local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-  [ "$slot" ] || slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-  if [ ! "$slot" ]; then
-    slot=$(getprop ro.boot.slot 2>/dev/null);
-    [ "$slot" ] || slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
-    [ "$slot" ] && slot=_$slot;
-  fi;
-  [ "$slot" == "normal" ] && unset slot;
-  [ "$slot" ] && echo "$slot";
-}
+show_progress() { echo "progress $1 $2" >> $OUTFD; }
+file_getprop() { $BB grep "^$2=" "$1" | $BB cut -d= -f2-; }
 setup_mountpoint() {
-  [ -L $1 ] && mv -f $1 ${1}_link;
+  test -L $1 && $BB mv -f $1 ${1}_link;
   if [ ! -d $1 ]; then
     rm -f $1;
     mkdir -p $1;
   fi;
 }
-is_mounted() { mount | grep -q " $1 "; }
+is_mounted() { $BB mount | $BB grep -q " $1 "; }
 mount_apex() {
-  [ -d /system_root/system/apex ] || return 1;
-  local apex dest loop minorx num shcon var;
+  test -d /system/apex || return 1;
+  local apex dest loop minorx num;
   setup_mountpoint /apex;
-  mount -t tmpfs tmpfs /apex -o mode=755 && touch /apex/apextmp;
-  shcon=$(cat /proc/self/attr/current);
-  echo "u:r:su:s0" > /proc/self/attr/current 2>/dev/null; # work around LOS Recovery not allowing loop mounts in recovery context
   minorx=1;
-  [ -e /dev/block/loop1 ] && minorx=$(ls -l /dev/block/loop1 | awk '{ print $6 }');
+  test -e /dev/block/loop1 && minorx=$($BB ls -l /dev/block/loop1 | $BB awk '{ print $6 }');
   num=0;
-  for apex in /system_root/system/apex/*; do
-    dest=/apex/$(basename $apex | sed -E -e 's;\.apex$|\.capex$;;' -e 's;\.current$|\.release$;;');
-    mkdir -p $dest;
+  for apex in /system/apex/*; do
+    dest=/apex/$($BB basename $apex .apex);
+    test "$dest" == /apex/com.android.runtime.release && dest=/apex/com.android.runtime;
+    $BB mkdir -p $dest;
     case $apex in
-      *.apex|*.capex)
-        unzip -qo $apex original_apex -d /apex;
-        [ -f /apex/original_apex ] && apex=/apex/original_apex;
-        unzip -qo $apex apex_payload.img -d /apex;
-        mv -f /apex/original_apex $dest.apex 2>/dev/null;
-        mv -f /apex/apex_payload.img $dest.img;
-        mount -t ext4 -o ro,noatime $dest.img $dest 2>/dev/null && echo "$dest (direct)" >&2;
+      *.apex)
+        $BB unzip -qo $apex apex_payload.img -d /apex;
+        $BB mv -f /apex/apex_payload.img $dest.img;
+        $BB mount -t ext4 -o ro,noatime $dest.img $dest 2>/dev/null;
         if [ $? != 0 ]; then
           while [ $num -lt 64 ]; do
             loop=/dev/block/loop$num;
-            [ -e $loop ] || mknod $loop b 7 $((num * minorx));
-            losetup $loop $dest.img 2>/dev/null;
+            ($BB mknod $loop b 7 $((num * minorx));
+            $BB losetup $loop $dest.img) 2>/dev/null;
             num=$((num + 1));
-            losetup $loop | grep -q $dest.img && break;
+            $BB losetup $loop | $BB grep -q $dest.img && break;
           done;
-          mount -t ext4 -o ro,loop,noatime $loop $dest && echo "$dest (loop)" >&2;
+          $BB mount -t ext4 -o ro,loop,noatime $loop $dest;
           if [ $? != 0 ]; then
-            losetup -d $loop 2>/dev/null;
-            if [ $num -eq 64 -a $(losetup -f) == "/dev/block/loop0" ]; then
-              echo "Aborting apex mounts due to broken environment..." >&2;
-              break;
-            fi;
+            $BB losetup -d $loop 2>/dev/null;
           fi;
         fi;
       ;;
-      *) mount -o bind $apex $dest && echo "$dest (bind)" >&2;;
+      *) $BB mount -o bind $apex $dest;;
     esac;
   done;
-  echo "$shcon" > /proc/self/attr/current 2>/dev/null;
-  for var in $(grep -o 'export .* /.*' /system_root/init.environ.rc | awk '{ print $2 }'); do
-    eval OLD_${var}=\$$var;
-  done;
-  $(grep -o 'export .* /.*' /system_root/init.environ.rc | sed 's; /;=/;'); unset export;
-  touch /apex/apexak3;
+  export ANDROID_RUNTIME_ROOT=/apex/com.android.runtime;
+  export ANDROID_TZDATA_ROOT=/apex/com.android.tzdata;
+  export BOOTCLASSPATH=/apex/com.android.runtime/javalib/core-oj.jar:/apex/com.android.runtime/javalib/core-libart.jar:/apex/com.android.runtime/javalib/okhttp.jar:/apex/com.android.runtime/javalib/bouncycastle.jar:/apex/com.android.runtime/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/android.test.base.jar:/system/framework/telephony-ext.jar:/apex/com.android.conscrypt/javalib/conscrypt.jar:/apex/com.android.media/javalib/updatable-media.jar;
 }
 umount_apex() {
-  [ -f /apex/apexak3 ] || return 1;
-  echo "Unmounting apex..." >&2;
-  local dest loop var;
-  for var in $(grep -o 'export .* /.*' /system_root/init.environ.rc 2>/dev/null | awk '{ print $2 }'); do
-    if [ "$(eval echo \$OLD_$var)" ]; then
-      eval $var=\$OLD_${var};
-    else
-      eval unset $var;
+  test -d /apex || return 1;
+  local dest loop;
+  for dest in $($BB find /apex -type d -mindepth 1 -maxdepth 1); do
+    if [ -f $dest.img ]; then
+      loop=$($BB mount | $BB grep $dest | $BB cut -d" " -f1);
     fi;
-    unset OLD_${var};
+    ($BB umount -l $dest;
+    $BB losetup -d $loop) 2>/dev/null;
   done;
-  for dest in $(find /apex -type d -mindepth 1 -maxdepth 1); do
-    loop=$(mount | grep $dest | grep loop | cut -d\  -f1);
-    umount -l $dest;
-    losetup $loop >/dev/null 2>&1 && losetup -d $loop;
-  done;
-  [ -f /apex/apextmp ] && umount /apex;
-  rm -rf /apex/apexak3 /apex 2>/dev/null;
+  $BB rm -rf /apex 2>/dev/null;
+  unset ANDROID_RUNTIME_ROOT ANDROID_TZDATA_ROOT BOOTCLASSPATH;
 }
 mount_all() {
-  local byname mount slot system;
-  echo "Mounting..." >&2;
-  byname=bootdevice/by-name;
-  [ -d /dev/block/$byname ] || byname=$(find /dev/block/platform -type d -name by-name 2>/dev/null | head -n1 | cut -d/ -f4-);
-  [ -e /dev/block/$byname/super -a -d /dev/block/mapper ] && byname=mapper;
-  [ -e /dev/block/$byname/system ] || slot=$(find_slot);
-  for mount in /cache /data /metadata /persist; do
-    if ! is_mounted $mount; then
-      mount $mount 2>/dev/null && echo "$mount (fstab)" >&2 && UMOUNTLIST="$UMOUNTLIST $mount";
-      if [ $? != 0 -a -e /dev/block/$byname$mount ]; then
-        setup_mountpoint $mount;
-        mount -o ro -t auto /dev/block/$byname$mount $mount && echo "$mount (direct)" >&2 && UMOUNTLIST="$UMOUNTLIST $mount";
-      fi;
-    fi;
-  done;
+  if ! is_mounted /data; then
+    $BB mount /data;
+    UMOUNT_DATA=1;
+  fi;
+  $BB mount -o ro -t auto /vendor 2>/dev/null;
   setup_mountpoint $ANDROID_ROOT;
   if ! is_mounted $ANDROID_ROOT; then
-    mount -o ro -t auto $ANDROID_ROOT 2>/dev/null && echo "$ANDROID_ROOT (\$ANDROID_ROOT)" >&2;
+    $BB mount -o ro -t auto $ANDROID_ROOT 2>/dev/null;
   fi;
   case $ANDROID_ROOT in
     /system_root) setup_mountpoint /system;;
     /system)
       if ! is_mounted /system && ! is_mounted /system_root; then
         setup_mountpoint /system_root;
-        mount -o ro -t auto /system_root && echo "/system_root (fstab)" >&2;
+        $BB mount -o ro -t auto /system_root;
       elif [ -f /system/system/build.prop ]; then
         setup_mountpoint /system_root;
-        mount --move /system /system_root && echo "/system_root (moved)" >&2;
+        $BB mount --move /system /system_root;
       fi;
       if [ $? != 0 ]; then
-        (umount /system;
-        umount -l /system) 2>/dev/null;
-        mount -o ro -t auto /dev/block/$byname/system$slot /system_root && echo "/system_root (direct)" >&2;
+        $BB umount /system;
+        $BB umount -l /system 2>/dev/null;
+        test -e /dev/block/bootdevice/by-name/system || local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
+        $BB mount -o ro -t auto /dev/block/bootdevice/by-name/system$slot /system_root;
       fi;
     ;;
   esac;
-  [ -f /system_root/system/build.prop ] && system=/system;
-  for mount in /vendor /product /system_ext; do
-    mount -o ro -t auto $mount 2>/dev/null && echo "$mount (fstab)" >&2;
-    if [ $? != 0 ] && [ -L /system$mount -o -L /system_root$system$mount ]; then
-      setup_mountpoint $mount;
-      mount -o ro -t auto /dev/block/$byname$mount$slot $mount && echo "$mount (direct)" >&2;
-    fi;
-  done;
   if is_mounted /system_root; then
-    mount_apex;
-    mount -o bind /system_root$system /system && echo "/system (bind)" >&2;
+    if [ -f /system_root/build.prop ]; then
+      $BB mount -o bind /system_root /system;
+    else
+      $BB mount -o bind /system_root/system /system;
+    fi;
   fi;
-  echo " " >&2;
+  mount_apex;
 }
 umount_all() {
-  local mount;
-  echo "Unmounting..." >&2;
-  (if [ ! -d /postinstall/tmp ]; then
-    umount /system;
-    umount -l /system;
-  fi) 2>/dev/null;
-  umount_apex;
-  (if [ ! -d /postinstall/tmp ]; then
-    umount /system_root;
-    umount -l /system_root;
+  (umount_apex;
+  if [ ! -d /postinstall/tmp ]; then
+    $BB umount /system;
+    $BB umount -l /system;
+    if [ -e /system_root ]; then
+      $BB umount /system_root;
+      $BB umount -l /system_root;
+    fi;
   fi;
-  PATH="$OLD_PATH" umount /vendor; # busybox umount /vendor breaks recovery on some hacky devices
-  PATH="$OLD_PATH" umount -l /vendor;
-  for mount in /mnt/system /mnt/vendor /product /mnt/product /system_ext /mnt/system_ext $UMOUNTLIST; do
-    umount $mount;
-    umount -l $mount;
-  done) 2>/dev/null;
+  umount /vendor;
+  umount -l /vendor;
+  if [ "$UMOUNT_DATA" ]; then
+    $BB umount /data;
+    $BB umount -l /data;
+  fi) 2>/dev/null;
 }
 setup_env() {
   $BOOTMODE && return 1;
-  mount -o bind /dev/urandom /dev/random;
+  $BB mount -o bind /dev/urandom /dev/random;
   if [ -L /etc ]; then
     setup_mountpoint /etc;
-    cp -af /etc_link/* /etc;
-    sed -i 's; / ; /system_root ;' /etc/fstab;
+    $BB cp -af /etc_link/* /etc;
+    $BB sed -i 's; / ; /system_root ;' /etc/fstab;
   fi;
   umount_all;
   mount_all;
@@ -208,7 +159,7 @@ setup_env() {
   if [ ! "$(getprop 2>/dev/null)" ]; then
     getprop() {
       local propdir propfile propval;
-      for propdir in / /system_root /system /vendor /product /product/etc /system_ext/etc /odm/etc; do
+      for propdir in / /system_root /system /vendor /odm /product; do
         for propfile in default.prop build.prop; do
           if [ "$propval" ]; then
             break 2;
@@ -217,11 +168,15 @@ setup_env() {
           fi;
         done;
       done;
-      echo "$propval";
+      if [ "$propval" ]; then
+        echo "$propval";
+      else
+        echo "";
+      fi;
     }
   elif [ ! "$(getprop ro.build.type 2>/dev/null)" ]; then
     getprop() {
-      ($(which getprop) | grep "$1" | cut -d[ -f3 | cut -d] -f1) 2>/dev/null;
+      ($(which getprop) | $BB grep "$1" | $BB cut -d[ -f3 | $BB cut -d] -f1) 2>/dev/null;
     }
   fi;
 }
@@ -229,55 +184,30 @@ restore_env() {
   $BOOTMODE && return 1;
   local dir;
   unset -f getprop;
-  [ "$OLD_LD_PATH" ] && export LD_LIBRARY_PATH=$OLD_LD_PATH;
-  [ "$OLD_LD_PRE" ] && export LD_PRELOAD=$OLD_LD_PRE;
-  [ "$OLD_LD_CFG" ] && export LD_CONFIG_FILE=$OLD_LD_CFG;
-  unset OLD_LD_PATH OLD_LD_PRE OLD_LD_CFG;
-  sleep 1;
+  test "$OLD_LD_PATH" && export LD_LIBRARY_PATH=$OLD_LD_PATH;
+  test "$OLD_LD_PRE" && export LD_PRELOAD=$OLD_LD_PRE;
+  test "$OLD_LD_CFG" && export LD_CONFIG_FILE=$OLD_LD_CFG;
   umount_all;
-  [ -L /etc_link ] && rm -rf /etc/*;
-  (for dir in /etc /apex /system_root /system /vendor /product /system_ext /metadata /persist; do
+  test -L /etc_link && $BB rm -rf /etc/*;
+  (for dir in /apex /system /system_root /etc; do
     if [ -L "${dir}_link" ]; then
       rmdir $dir;
-      mv -f ${dir}_link $dir;
+      $BB mv -f ${dir}_link $dir;
     fi;
   done;
-  umount -l /dev/random) 2>/dev/null;
-}
-setup_bb() {
-  local arch32 bb;
-  for arch32 in x86 arm; do
-    if [ -d $AKHOME/tools/$arch32 ]; then
-      bb=$AKHOME/tools/$arch32/busybox;
-      chmod 755 $bb;
-      $bb >/dev/null 2>&1;
-      if [ $? == 0 ]; then
-        $bb mv -f $AKHOME/tools/$arch32/* $AKHOME/tools;
-        break;
-      fi;
-    fi;
-  done;
-  bb=$AKHOME/tools/busybox;
-  chmod 755 $bb;
-  $bb chmod -R 755 tools bin;
-  $bb --install -s bin;
+  $BB umount -l /dev/random) 2>/dev/null;
 }
 debugging() {
-  local debug log path;
   case $(basename "$ZIPFILE" .zip) in
-    *-debugging) debug=1;;
+    *-debugging)
+      ui_print " " "Creating debugging archive in $DIR...";
+      test -f /tmp/recovery.log && local log=/tmp/recovery.log;
+      $BB tar -czf "$DIR/anykernel3-$(date +%Y-%m-%d_%H%M%S)-debug.tgz" $AKHOME $log;
+    ;;
   esac;
-  for path in /tmp /cache /metadata /persist; do
-    [ -f $path/.ak3-debugging ] && debug=1;
-  done;
-  if [ "$debug" ]; then
-    ui_print " " "Creating debugging archive in $DIR...";
-    [ -f /tmp/recovery.log ] && log=/tmp/recovery.log;
-    tar -czf "$DIR/anykernel3-$(date +%Y-%m-%d_%H%M%S)-debug.tgz" $AKHOME $log;
-  fi;
 }
 cleanup() {
-  cd $AKHOME/../;
+  cd $(dirname $AKHOME);
   rm -rf $AKHOME;
 }
 abort() {
@@ -290,14 +220,14 @@ abort() {
   exit 1;
 }
 do_devicecheck() {
-  [ "$(file_getprop anykernel.sh do.devicecheck)" == 1 ] || return 1;
+  test "$(file_getprop anykernel.sh do.devicecheck)" == 1 || return 1;
   local device devicename match product testname vendordevice vendorproduct;
   ui_print "Checking device...";
   device=$(getprop ro.product.device 2>/dev/null);
   product=$(getprop ro.build.product 2>/dev/null);
   vendordevice=$(getprop ro.product.vendor.device 2>/dev/null);
   vendorproduct=$(getprop ro.vendor.product.device 2>/dev/null);
-  for testname in $(grep '^device.name.*=' anykernel.sh | cut -d= -f2-); do
+  for testname in $(file_getprop anykernel.sh 'device.name.*'); do
     for devicename in $device $product $vendordevice $vendorproduct; do
       if [ "$devicename" == "$testname" ]; then
         ui_print "$testname" " ";
@@ -311,29 +241,29 @@ do_devicecheck() {
   fi;
 }
 int2ver() {
-  if [ "$1" -eq "$1" ] 2>/dev/null; then
+  if $BB [ "$1" -eq "$1" ] 2>/dev/null; then
     echo "$1.0.0";
-  elif [ ! "$(echo "$1" | cut -d. -f3)" ]; then
+  elif [ ! "$(echo "$1" | $BB cut -d. -f3)" ]; then
     echo "$1.0";
   else
     echo "$1";
   fi;
 }
 do_versioncheck() {
-  [ "$(file_getprop anykernel.sh supported.versions)" ] || return 1;
+  test "$(file_getprop anykernel.sh supported.versions)" || return 1;
   local android_ver hi_ver lo_ver parsed_ver supported supported_ver;
   ui_print "Checking Android version...";
-  supported_ver=$(file_getprop anykernel.sh supported.versions | tr -d '[:space:]');
+  supported_ver=$(file_getprop anykernel.sh supported.versions | $BB tr -d '[:space:]');
   android_ver=$(file_getprop /system/build.prop ro.build.version.release);
   parsed_ver=$(int2ver $android_ver);
-  if echo $supported_ver | grep -q '-'; then
-    lo_ver=$(int2ver "$(echo $supported_ver | cut -d- -f1)");
-    hi_ver=$(int2ver "$(echo $supported_ver | cut -d- -f2)");
-    if echo -e "$hi_ver\n$lo_ver\n$parsed_ver" | sort -g | grep -n "$parsed_ver" | grep -q '^2:'; then
+  if echo $supported_ver | $BB grep -q '-'; then
+    lo_ver=$(int2ver "$(echo $supported_ver | $BB cut -d- -f1)");
+    hi_ver=$(int2ver "$(echo $supported_ver | $BB cut -d- -f2)");
+    if echo -e "$hi_ver\n$lo_ver\n$parsed_ver" | $BB sort -g | $BB grep -n "$parsed_ver" | $BB grep -q '^2:'; then
       supported=1;
     fi;
   else
-    for ver in $(echo $supported_ver | sed 's;,; ;g'); do
+    for ver in $(echo $supported_ver | $BB sed 's;,; ;g'); do
       if [ "$(int2ver $ver)" == "$parsed_ver" ]; then
         supported=1;
         break;
@@ -347,56 +277,32 @@ do_versioncheck() {
   fi;
 }
 do_levelcheck() {
-  [ "$(file_getprop anykernel.sh supported.patchlevels)" ] || return 1;
+  test "$(file_getprop anykernel.sh supported.patchlevels)" || return 1;
   local android_lvl hi_lvl lo_lvl parsed_lvl supported_lvl;
   ui_print "Checking Android security patch level...";
-  supported_lvl=$(file_getprop anykernel.sh supported.patchlevels | grep -oE '[0-9]{4}-[0-9]{2}|-');
+  supported_lvl=$(file_getprop anykernel.sh supported.patchlevels | $BB grep -oE '[0-9]{4}-[0-9]{2}|-');
   android_lvl=$(file_getprop /system/build.prop ro.build.version.security_patch);
-  parsed_lvl=$(echo $android_lvl | grep -oE '[0-9]{4}-[0-9]{2}');
-  if echo $supported_lvl | grep -q '^\-'; then
+  parsed_lvl=$(echo $android_lvl | $BB grep -oE '[0-9]{4}-[0-9]{2}');
+  if echo $supported_lvl | $BB grep -q '^\-'; then
     lo_lvl=0000-00;
-    hi_lvl=$(echo $supported_lvl | awk '{ print $2 }');
-  elif echo $supported_lvl | grep -q ' - '; then
-    lo_lvl=$(echo $supported_lvl | awk '{ print $1 }');
-    hi_lvl=$(echo $supported_lvl | awk '{ print $3 }');
-  elif echo $supported_lvl | grep -q '\-$'; then
-    lo_lvl=$(echo $supported_lvl | awk '{ print $1 }');
+    hi_lvl=$(echo $supported_lvl | $BB awk '{ print $2 }');
+  elif echo $supported_lvl | $BB grep -q ' - '; then
+    lo_lvl=$(echo $supported_lvl | $BB awk '{ print $1 }');
+    hi_lvl=$(echo $supported_lvl | $BB awk '{ print $3 }');
+  elif echo $supported_lvl | $BB grep -q '\-$'; then
+    lo_lvl=$(echo $supported_lvl | $BB awk '{ print $1 }');
     hi_lvl=9999-99;
   fi;
-  if echo -e "$hi_lvl\n$lo_lvl\n$parsed_lvl" | sort -g | grep -n "$parsed_lvl" | grep -q '^2:'; then
+  if echo -e "$hi_lvl\n$lo_lvl\n$parsed_lvl" | $BB sort -g | $BB grep -n "$parsed_lvl" | $BB grep -q '^2:'; then
     ui_print "$android_lvl" " ";
   else
     abort " " "Unsupported Android security patch level. Aborting...";
   fi;
 }
-do_vendorlevelcheck() {
-  [ "$(file_getprop anykernel.sh supported.vendorpatchlevels)" ] || return 1;
-  local vendor_lvl hi_lvl lo_lvl parsed_lvl supported_lvl;
-  ui_print "Checking Vendor security patch level...";
-  supported_lvl=$(file_getprop anykernel.sh supported.vendorpatchlevels | grep -oE '[0-9]{4}-[0-9]{2}|-');
-  vendor_lvl=$(file_getprop /vendor/build.prop ro.vendor.build.security_patch);
-  parsed_lvl=$(echo $vendor_lvl | grep -oE '[0-9]{4}-[0-9]{2}');
-  if echo $supported_lvl | grep -q '^\-'; then
-    lo_lvl=0000-00;
-    hi_lvl=$(echo $supported_lvl | awk '{ print $2 }');
-  elif echo $supported_lvl | grep -q ' - '; then
-    lo_lvl=$(echo $supported_lvl | awk '{ print $1 }');
-    hi_lvl=$(echo $supported_lvl | awk '{ print $3 }');
-  elif echo $supported_lvl | grep -q '\-$'; then
-    lo_lvl=$(echo $supported_lvl | awk '{ print $1 }');
-    hi_lvl=9999-99;
-  fi;
-  if echo -e "$hi_lvl\n$lo_lvl\n$parsed_lvl" | sort -g | grep -n "$parsed_lvl" | grep -q '^2:'; then
-    ui_print "$vendor_lvl" " ";
-  else
-    abort " " "Unsupported Vendor security patch level. Aborting...";
-  fi;
-}
 dump_moduleinfo() {
 cat <<EOF > $1;
-id=ak3-helper
 name=AK3 Helper Module
-version=$(awk '{ print $3 }' $AKHOME/vertmp) $(grep -oE '#.[0-9]' $AKHOME/vertmp)
+version=$($BB awk '{ print $3 }' $AKHOME/vertmp) $($BB grep -oE '#.[0-9]' $AKHOME/vertmp)
 versionCode=1
 author=AnyKernel3
 description=$KERNEL_STRING
@@ -408,122 +314,76 @@ cat <<'EOF' > $1;
 MODDIR=${0%/*};
 if [ "$(cat /proc/version)" != "$(cat $MODDIR/version)" ]; then
   rm -rf $MODDIR;
-  exit;
 fi;
-rm -f $MODDIR/update;
-. $MODDIR/post-fs-data.2.sh;
 EOF
 }
 do_modules() {
-  [ "$(file_getprop anykernel.sh do.modules)" == 1 ] || return 1;
-  local block modcon moddir modtarget module mount slot umask umountksu;
+  test "$(file_getprop anykernel.sh do.modules)" == 1 || return 1;
+  local block modcon moddir modtarget module slot umask;
   if [ "$(file_getprop anykernel.sh do.systemless)" == 1 ]; then
-    if [ ! -d /data/adb -o ! -d /data/data/android ]; then
-      ui_print " " "Warning: No /data access for kernel helper systemless module!";
-      return 1;
-    fi;
     cd $AKHOME/modules;
-    ui_print " " "Creating kernel helper systemless module...";
-    if [ -d /data/adb/magisk -a -f $AKHOME/magisk_patched ] || [ -d /data/data/me.weishu.kernelsu -a -f $AKHOME/kernelsu_patched ]; then
+    ui_print " " "Creating kernel helper Magisk module...";
+    if [ -d /data/adb/magisk -a -f $AKHOME/split_img/.magisk ]; then
       umask=$(umask);
-      moddir=/data/adb/modules/ak3-helper;
-      # this may be the initial KernelSU install or first module so setup as needed
-      if [ -f $AKHOME/kernelsu_patched ]; then
-        umask 077;
-        if [ ! -f /data/adb/ksud ]; then
-          cp -f /data/app/*/me.weishu.kernelsu*/lib/*/libksud.so /data/adb/ksud;
-          chmod 755 /data/adb/ksud;
-        fi;
-        if [ ! -d /data/adb/modules ]; then
-          mkdir -p /data/adb/modules;
-          chmod 777 /data/adb/modules;
-        fi;
-        [ -d /data/adb/modules_update ] || mkdir -p /data/adb/modules_update;
-        [ -d /data/adb/ksu ] || mkdir -p /data/adb/ksu;
-        [ -f /data/adb/ksu/modules.img ] && cp -f /data/adb/ksu/modules.img /data/adb/ksu/modules_update.img;
-        if [ ! -f /data/adb/ksu/modules_update.img ]; then
-          /system/bin/make_ext4fs -b 1024 -l 256M /data/adb/ksu/modules_update.img 2>/dev/null \
-            || /system/bin/mke2fs -b 1024 -t ext4 /data/adb/ksu/modules_update.img 256M;
-        fi;
-        mount -t ext4 -o rw /data/adb/ksu/modules_update.img /data/adb/modules_update && umountksu=1;
-        touch /data/adb/ksu/update;
-        umask 022;
-        rm -rf $moddir;
-        mkdir -p $moddir;
-        dump_moduleinfo $moddir/module.prop;
-        touch $moddir/update;
-        moddir=/data/adb/modules_update/ak3-helper;
-      fi;
       umask 022;
+      moddir=/data/adb/modules/ak3-helper;
       rm -rf $moddir;
       mkdir -p system $moddir;
-      (mv -f product system;
-      mv -f vendor system;
-      mv -f system_ext system;
-      mv -f post-fs-data.sh post-fs-data.2.sh) 2>/dev/null;
-      cp -rLf * $moddir;
+      ($BB mv -f product system;
+      $BB mv -f vendor system) 2>/dev/null;
+      $BB cp -rLf * $moddir;
       dump_moduleinfo $moddir/module.prop;
       dump_moduleremover $moddir/post-fs-data.sh;
       cp -f $AKHOME/vertmp $moddir/version;
-      touch $moddir/update;
       umask $umask;
-      /system/bin/chcon -hR "u:object_r:system_file:s0" $moddir;
-      [ "$umountksu" ] && umount /data/adb/modules_update;
     else
-      ui_print "Magisk/KernelSU installation not found. Skipped!";
+      ui_print "Magisk installation not found. Skipped!";
     fi;
   else
     cd $AKHOME/modules;
     ui_print " " "Pushing modules...";
     if [ -d /dev/block/mapper ]; then
-      for block in system vendor product; do
+      for block in system vendor; do
         for slot in "" _a _b; do
-          blockdev --setrw /dev/block/mapper/$block$slot 2>/dev/null;
+          $BB blockdev --setrw /dev/block/mapper/$block$slot 2>/dev/null;
         done;
       done;
     fi;
     if [ ! -d /postinstall/tmp ]; then
-      for mount in /system /vendor /product; do
-        if is_mounted $mount; then
-          mount -o rw,remount -t auto $mount && echo "$mount (rw)" >&2;
-        fi;
-      done;
+      $BB mount -o rw,remount -t auto /system;
+      $BB mount -o rw,remount -t auto /vendor 2>/dev/null;
     fi;
     for module in $(find . -name '*.ko'); do
-      modtarget=$POSTINSTALL$(echo $module | cut -c2-);
+      modtarget=$POSTINSTALL$(echo $module | $BB cut -c2-);
       if [ ! -e $modtarget ]; then
         case $module in
           */vendor/*) modcon=vendor;;
-          */product/*) modcon=product;;
           *) modcon=system;;
         esac;
       fi;
       if is_mounted $modtarget; then
-        mount -o rw,remount -t auto $modtarget && echo "$modtarget (rw)" >&2;
+        $BB mount -o rw,remount -t auto $modtarget;
       fi;
       mkdir -p $(dirname $modtarget);
-      cp -rLf $module $modtarget;
-      chown 0:0 $modtarget;
-      chmod 644 $modtarget;
+      $BB cp -rLf $module $modtarget;
+      $BB chown 0:0 $modtarget;
+      $BB chmod 644 $modtarget;
       if [ "$modcon" ]; then
-        /system/bin/chcon "u:object_r:${modcon}_file:s0" $modtarget;
+        chcon "u:object_r:${modcon}_file:s0" $modtarget;
       fi;
       if is_mounted $modtarget; then
-        mount -o ro,remount -t auto $modtarget && echo "$modtarget (ro)" >&2;
+        $BB mount -o ro,remount -t auto $modtarget;
       fi;
     done;
     if [ ! -d /postinstall/tmp ]; then
-      for mount in /system /vendor /product; do
-        if is_mounted $mount; then
-          mount -o ro,remount -t auto $mount && echo "$mount (ro)" >&2;
-        fi;
-      done;
+      $BB mount -o ro,remount -t auto /system;
+      $BB mount -o ro,remount -t auto /vendor 2>/dev/null;
     fi;
   fi;
   cd $AKHOME;
 }
 
-show_progress 1.34 25;
+show_progress 1.34 4;
 ui_print " ";
 cleanup;
 mkdir -p $AKHOME/bin;
@@ -532,12 +392,24 @@ unzip -o "$ZIPFILE";
 if [ $? != 0 -o ! "$(ls tools)" ]; then
   abort "Unzip failed. Aborting...";
 fi;
-setup_bb;
+for ARCH32 in x86 arm; do
+  if [ -d $AKHOME/tools/$ARCH32 ]; then
+    BB=$AKHOME/tools/$ARCH32/busybox;
+    chmod 755 $BB;
+    $BB >/dev/null 2>&1;
+    if [ $? == 0 ]; then
+      $BB mv -f $AKHOME/tools/$ARCH32/* $AKHOME/tools;
+      break;
+    fi;
+  fi;
+done;
+BB=$AKHOME/tools/busybox;
+chmod 755 $BB;
+$BB chmod -R 755 tools bin;
+$BB --install -s bin;
 if [ $? != 0 -o -z "$(ls bin)" ]; then
   abort "Busybox setup failed. Aborting...";
 fi;
-OLD_PATH="$PATH";
-export PATH="$AKHOME/tools:$AKHOME/bin:$PATH";
 
 if [ -f banner ]; then
   ui_printfile banner;
@@ -551,22 +423,18 @@ if [ -f version ]; then
   ui_printfile version;
   ui_print " ";
 fi;
-ui_print " " "AnyKernel3 by osm0sis @ xda-developers" " ";
-grep -oE 'AK_BASE.*' META-INF/com/google/android/updater-script >&2;
-ui_print " ";
+ui_print " " "AnyKernel3 by osm0sis @ xda-developers" " " " ";
 
 setup_env;
 
 do_devicecheck;
 do_versioncheck;
 do_levelcheck;
-do_vendorlevelcheck;
 
 ui_print "Installing...";
-# hack to maintain support for anykernel.sh files that weren't updated correctly along with the AK core
-CORE=$(grep -oE 'ak.*core.sh' anykernel.sh);
-[ -f tools/$CORE ] || ln -s $AKHOME/tools/ak*-core.sh $AKHOME/tools/$CORE;
-ash anykernel.sh;
+CORE=$($BB grep -oE 'ak.*core.sh' anykernel.sh);
+test -f tools/$CORE || $BB ln -s $AKHOME/tools/ak*-core.sh $AKHOME/tools/$CORE;
+PATH="$AKHOME/bin:$PATH" home=$AKHOME $BB ash anykernel.sh $2;
 if [ $? != 0 ]; then
   abort;
 fi;
@@ -574,13 +442,10 @@ fi;
 do_modules;
 
 debugging;
-ui_print " ";
 restore_env;
 
 if [ "$(file_getprop anykernel.sh do.cleanup)" == 1 ]; then
   cleanup;
 fi;
 
-ui_print " " "Done!";
-export PATH="$OLD_PATH";
-unset OLD_PATH OUTFD ZIPFILE;
+ui_print " " " " "Done!";
