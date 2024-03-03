@@ -6,20 +6,26 @@
 properties() { '
 kernel.string=ExampleKernel by osm0sis @ xda-developers
 do.devicecheck=1
-do.modules=0
+do.modules=1
 do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=maguro
-device.name2=toro
-device.name3=toroplus
-device.name4=tuna
-device.name5=
+device.name1=RMX2151L1
+device.name2=RMX2001L1
+device.name3=RMX2155L1
+device.name4=RMX2156L1
+device.name5=RMX2151
+device.name6=RMX2001
+device.name7=RMX2155
+device.name8=RMX2156
+device.name9=RM6785
+device.name10=oppo6785
+device.name11=salaa
+device.name12=ossi
 supported.versions=
 supported.patchlevels=
 supported.vendorpatchlevels=
 '; } # end properties
-
 
 ### AnyKernel install
 ## boot files attributes
