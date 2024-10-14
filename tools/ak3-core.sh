@@ -483,7 +483,7 @@ flash_generic() {
     if [ "$path" == "/dev/block/mapper" ]; then
       avb=$(httools_static avb $1);
       [ $? == 0 ] || abort "Failed to parse fstab entry for $1. Aborting...";
-      if [ "$avb" ] && [ ! "$NO_HTTOOLS_VBMETA_PATCH" ]; then
+      if [ "$avb" ] && [ ! "$NO_VBMETA_PARTITION_PATCH" ]; then
         flags=$(httools_static disable-flags);
         [ $? == 0 ] || abort "Failed to parse top-level vbmeta. Aborting...";
         if [ "$flags" == "enabled" ]; then
