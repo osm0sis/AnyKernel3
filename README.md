@@ -61,7 +61,7 @@ __supported.patchlevels=__ and __supported.vendorpatchlevels=__ will match again
 
 `NO_MAGISK_CHECK=1` may be added to disable detection of Magisk and related kernel/dtb repatching for special zips which don't require that.
 
-`NO_VBMETA_PARTITION_PATCH=1` may be added to skip vbmeta processing using httools, since GKI is bootable with verity/verification ON, as long as AVB is not enforced for boot stage partitions
+`NO_VBMETA_PARTITION_PATCH=1` may be added to skip vbmeta processing using httools, since GKI is bootable with verity/verification ON, as long as AVB is not enforced for boot stage partitions.
 
 ## // Command Methods ##
 ```
