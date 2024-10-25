@@ -15,7 +15,7 @@ device.name2=RMX2170
 device.name3=
 device.name4=
 device.name5=
-supported.versions=11.0-13.0
+supported.versions=11.0-15.0
 '; } # end properties
 
 # shell variables
