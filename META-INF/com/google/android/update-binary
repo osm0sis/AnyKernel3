@@ -291,14 +291,15 @@ abort() {
 }
 do_devicecheck() {
   [ "$(file_getprop anykernel.sh do.devicecheck)" == 1 ] || return 1;
-  local device devicename match product testname vendordevice vendorproduct;
+  local board device devicename match product testname vendordevice vendorproduct;
   ui_print "Checking device...";
+  board=$(getprop ro.product.board 2>/dev/null);
   device=$(getprop ro.product.device 2>/dev/null);
   product=$(getprop ro.build.product 2>/dev/null);
   vendordevice=$(getprop ro.product.vendor.device 2>/dev/null);
   vendorproduct=$(getprop ro.vendor.product.device 2>/dev/null);
   for testname in $(grep '^device.name.*=' anykernel.sh | cut -d= -f2-); do
-    for devicename in $device $product $vendordevice $vendorproduct; do
+    for devicename in $board $device $product $vendordevice $vendorproduct; do
       if [ "$devicename" == "$testname" ]; then
         ui_print "$testname" " ";
         match=1;
