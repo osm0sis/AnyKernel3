@@ -322,7 +322,7 @@ int2ver() {
 do_versioncheck() {
   [ "$(file_getprop anykernel.sh supported.versions)" ] || return 1;
   local android_ver hi_ver lo_ver parsed_ver supported supported_ver;
-  ui_print "Checking Android version ...";
+  ui_print "- Checking Android version ...";
   supported_ver=$(file_getprop anykernel.sh supported.versions | tr -d '[:space:]');
   android_ver=$(file_getprop /system/build.prop ro.build.version.release);
   parsed_ver=$(int2ver $android_ver);
@@ -340,12 +340,12 @@ do_versioncheck() {
       fi;
     done;
   fi;
-  if [ "$supported" ]; then
-    ui_print "- Current Android Verison: $android_ver Is Supported.";
+  if [ "- $supported" ]; then
+    ui_print "- Current Android Verison: $android_ver is Supported.";
     ui_print " ";
     ui_print "- Continuing With Flashing Process ...";
   else
-    abort "- Currently Android $android_ver Is Unsupported. This Kernel Is Only For Android $supported_ver. Aborting... !";
+    abort "- Currently Android $android_ver is Unsupported. This Kernel Is Only For Android $supported_ver. Aborting... !";
   fi;
 }
 do_levelcheck() {
