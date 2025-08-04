@@ -4,7 +4,7 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=Igris
+kernel.string=A226B-Naifi1954
 do.devicecheck=0
 do.modules=0
 do.systemless=0
