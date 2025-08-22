@@ -15,7 +15,7 @@ device.name2=A226B
 device.name3=A226BR
 device.name4=a226b
 device.name5=a226br
-supported.versions=11.0-15.0
+supported.versions=11.0-16.0
 '; } # end properties
 
 # shell variables
