@@ -4,7 +4,7 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=A226B-Naifi1954
+kernel.string=A226B-H3CKED
 do.devicecheck=0
 do.modules=0
 do.systemless=0
