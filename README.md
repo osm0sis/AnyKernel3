@@ -154,7 +154,7 @@ Optionally moving ARM builds to tools/arm and putting x86 builds in tools/x86 wi
 
 4. Modify the anykernel.sh to add your kernel's name, boot partition location, permissions for any added ramdisk files, and use methods for any required ramdisk modifications (optionally, also place banner and/or version files in the root to have these displayed during flash)
 
-5. `zip -r9 UPDATE-AnyKernel3.zip * -x .git README.md *placeholder`
+5. `zip -r9 UPDATE-AnyKernel3.zip * -x .git .gitignore README.md *placeholder`
 
 _The LICENSE file must remain in the final zip to comply with licenses for binary redistribution and the license of the AK3 scripts._
 
