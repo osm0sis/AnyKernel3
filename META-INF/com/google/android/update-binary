@@ -1,6 +1,5 @@
 #!/sbin/sh
 # AnyKernel3 Backend (DO NOT CHANGE)
-# osm0sis @ xda-developers
 
 export OUTFD=$2;
 export ZIPFILE="$3";
@@ -551,7 +550,7 @@ if [ -f version ]; then
   ui_printfile version;
   ui_print " ";
 fi;
-ui_print " " "AnyKernel3 by osm0sis @ xda-developers" " ";
+ui_print " " "AnyKernel3 by SaleOff" " ";
 grep -oE 'AK_BASE.*' META-INF/com/google/android/updater-script >&2;
 ui_print " ";
 
