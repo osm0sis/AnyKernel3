@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------------
 AnyKernel3 - Flashable Zip Template for Kernel Releases with Ramdisk Modifications
 ----------------------------------------------------------------------------------
-### by osm0sis @ xda-developers ###
+### by osm0sis ###
 
 "AnyKernel is a template for an update.zip that can apply any kernel to any ROM, regardless of ramdisk." - Koush
 
@@ -11,7 +11,7 @@ _A script based on Galaxy Nexus (tuna) is included for reference. Everything to 
 
 ## // Properties / Variables ##
 ```
-kernel.string=KernelName by YourName @ xda-developers
+kernel.string=KernelName by YourName
 do.devicecheck=1
 do.modules=1
 do.systemless=1
