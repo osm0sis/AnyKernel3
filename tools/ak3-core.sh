@@ -1,5 +1,4 @@
 ### AnyKernel methods (DO NOT CHANGE)
-## osm0sis @ xda-developers
 
 [ "$OUTFD" ] || OUTFD=$1;
 
