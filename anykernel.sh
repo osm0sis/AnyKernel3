@@ -1,7 +1,5 @@
-### AnyKernel3 Ramdisk Mod Script
-## osm0sis
+# AnyKernel3 Ramdisk Mod Script
 
-### AnyKernel setup
 # Global properties
 properties() { '
 do.devicecheck=0
@@ -9,7 +7,7 @@ do.modules=0
 do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=kernel
+device.name1=
 supported.versions=
 supported.patchlevels=
 supported.vendorpatchlevels=
@@ -17,7 +15,7 @@ supported.vendorpatchlevels=
 
 # Boot shell variables
 BLOCK=boot;
-IS_SLOT_DEVICE=0;
+IS_SLOT_DEVICE=auto;
 RAMDISK_COMPRESSION=auto;
 PATCH_VBMETA_FLAG=auto;
 NO_BLOCK_DISPLAY=1
@@ -25,7 +23,7 @@ NO_BLOCK_DISPLAY=1
 # Import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
 
-## Select the correct image to flash
+# Select the correct image to flash
 userflavor="$(file_getprop /system/build.prop "ro.build.flavor")";
 case "$userflavor" in
     missi-user) os="miui"; os_string="MIUI ROM";;
@@ -35,10 +33,9 @@ case "$userflavor" in
     *) os="aosp"; os_string="AOSP ROM";;
 esac;
 ui_print "  -> $os_string is detected!";
-
 mv $home/kernels/Image $home/Image;
 
 # Boot install
 split_boot;
 flash_boot;
-## End boot install
+# End boot install
