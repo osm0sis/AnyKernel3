@@ -858,7 +858,7 @@ setup_ak() {
   rmdir -p modules patch ramdisk 2>/dev/null;
 
   # automate simple multi-partition setup for hdr_v4 boot + init_boot + vendor_kernel_boot (for dtb only until magiskboot supports hdr v4 vendor_ramdisk unpack/repack)
-  if [ -e "/dev/block/bootdevice/by-name/init_boot$SLOT" -a ! -f init_v4_setup ] && [ -f dtb -o -d vendor_ramdisk -o -d vendor_patch ]; then
+  if [ -e "/dev/block/bootdevice/by-name/init_boot$SLOT" -a -e "/dev/block/bootdevice/by-name/vendor_kernel_boot$SLOT" -a ! -f init_v4_setup ] && [ -f dtb -o -d vendor_ramdisk -o -d vendor_patch ]; then
     echo "Setting up for simple automatic init_boot flashing..." >&2;
     (mkdir boot-files;
     mv -f Image* boot-files;
