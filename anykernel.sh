@@ -4,17 +4,13 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=Igris
+kernel.string=
 do.devicecheck=0
 do.modules=0
 do.systemless=0
 do.cleanup=1
 do.cleanuponabort=1
 device.name1=a22x
-device.name2=A226B
-device.name3=A226BR
-device.name4=a226b
-device.name5=a226br
 supported.versions=11.0-16.0
 '; } # end properties
 
