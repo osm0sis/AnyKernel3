@@ -717,15 +717,55 @@ setup_ak() {
     ;;
   esac;
 
-  # target block partition detection enabled by block=boot recovery or auto (from anykernel.sh)
-  case $block in
-     auto|"") block=boot;;
-  esac;
-  case $block in
-    boot|recovery)
-      case $block in
-        boot) parttype="ramdisk boot BOOT LNX android_boot bootimg KERN-A kernel KERNEL";;
-        recovery) parttype="ramdisk_recovery recovery RECOVERY SOS android_recovery";;
+  # clean up any template placeholder files
+  cd $AKHOME;
+  rm -f modules/system/lib/modules/placeholder patch/placeholder ramdisk/placeholder;
+  rmdir -p modules patch ramdisk 2>/dev/null;
+
+  # automate simple multi-partition setup for hdr_v4 boot + init_boot + vendor_kernel_boot (for dtb only until magiskboot supports hdr v4 vendor_ramdisk unpack/repack)
+  if [ -e "/dev/block/bootdevice/by-name/init_boot$SLOT" -a -e "/dev/block/bootdevice/by-name/vendor_kernel_boot$SLOT" -a ! -f init_v4_setup ] && [ -f dtb -o -d vendor_ramdisk -o -d vendor_patch ]; then
+    echo "Setting up for simple automatic init_boot flashing..." >&2;
+    (mkdir boot-files;
+    mv -f Image* boot-files;
+    mkdir init_boot-files;
+    mv -f ramdisk patch init_boot-files;
+    mkdir vendor_kernel_boot-files;
+    mv -f dtb vendor_kernel_boot-files;
+    mv -f vendor_ramdisk vendor_kernel_boot-files/ramdisk;
+    mv -f vendor_patch vendor_kernel_boot-files/patch) 2>/dev/null;
+    touch init_v4_setup;
+  # automate simple multi-partition setup for hdr_v3+ boot + vendor_boot with dtb/dlkm (for v3 only until magiskboot supports hdr v4 vendor_ramdisk unpack/repack)
+  elif [ -e "/dev/block/bootdevice/by-name/vendor_boot$SLOT" -a ! -f vendor_v3_setup ] && [ -f dtb -o -d vendor_ramdisk -o -d vendor_patch ]; then
+    echo "Setting up for simple automatic vendor_boot flashing..." >&2;
+    (mkdir boot-files;
+    mv -f Image* ramdisk patch boot-files;
+    mkdir vendor_boot-files;
+    mv -f dtb vendor_boot-files;
+    mv -f vendor_ramdisk vendor_boot-files/ramdisk;
+    mv -f vendor_patch vendor_boot-files/patch) 2>/dev/null;
+    touch vendor_v3_setup;
+  fi;
+
+  # target block partition detection enabled by BLOCK=<partition filename> or auto (from anykernel.sh)
+  case $BLOCK in
+    /dev/*)
+      if [ "$SLOT" ] && [ -e "$BLOCK$SLOT" ]; then
+        target=$BLOCK$SLOT;
+      elif [ -e "$BLOCK" ]; then
+        target=$BLOCK;
+      fi;
+    ;;
+    *)
+      # maintain brief lists of historic matching partition type names for boot, recovery and init_boot/ramdisk
+      plistboot="boot BOOT LNX android_boot bootimg KERN-A kernel KERNEL";
+      plistreco="recovery RECOVERY SOS android_recovery recovery_ramdisk";
+      plistinit="init_boot ramdisk";
+      case $BLOCK in
+        auto) parttype="$plistinit $plistboot";;
+        boot|kernel) parttype=$plistboot;;
+        recovery|recovery_ramdisk) parttype=$plistreco;;
+        init_boot|ramdisk) parttype=$plistinit;;
+        *) parttype=$BLOCK;;
       esac;
       for name in $parttype; do
         for part in $name$slot $name; do
