@@ -564,9 +564,6 @@ flash_generic() {
   fi;
 }
 
-# flash_dtbo (backwards compatibility for flash_generic)
-flash_dtbo() { flash_generic dtbo; }
-
 ### write_boot (repack ramdisk then build, sign and write image, vendor_dlkm and dtbo)
 write_boot() {
   repack_ramdisk;
@@ -785,10 +782,6 @@ patch_ueventd() {
 reset_ak() {
   local current i;
 
-  # Backwards compatibility for old API
-  [ "$no_block_display" ] && NO_BLOCK_DISPLAY="$no_block_display";
-  unset no_block_display;
-
   current=$(dirname $AKHOME/*-files/current);
   if [ -d "$current" ]; then
     for i in $BOOTIMG $AKHOME/boot-new.img; do
@@ -815,17 +808,6 @@ reset_ak() {
 # setup_ak
 setup_ak() {
   local blockfiles plistboot plistinit plistreco parttype name part mtdmount mtdpart mtdname target;
-
-  # Backwards compatibility for old API
-  [ "$block" ] && BLOCK="$block";
-  [ "$is_slot_device" ] && IS_SLOT_DEVICE="$is_slot_device";
-  [ "$ramdisk_compression" ] && RAMDISK_COMPRESSION="$ramdisk_compression";
-  [ "$patch_vbmeta_flag" ] && PATCH_VBMETA_FLAG="$patch_vbmeta_flag";
-  [ "$customdd" ] && CUSTOMDD="$customdd";
-  [ "$slot_select" ] && SLOT_SELECT="$slot_select";
-  [ "$no_block_display" ] && NO_BLOCK_DISPLAY="$no_block_display";
-  [ "$no_magisk_check" ] && NO_MAGISK_CHECK="$no_magisk_check";
-  unset block is_slot_device ramdisk_compression patch_vbmeta_flag customdd slot_select no_block_display no_magisk_check;
 
   # slot detection enabled by IS_SLOT_DEVICE=1 or auto (from anykernel.sh)
   case $IS_SLOT_DEVICE in
@@ -956,7 +938,6 @@ setup_ak() {
   fi;
 
   # run attributes function for current block if it exists
-  type attributes >/dev/null 2>&1 && attributes; # backwards compatibility
   type ${name}_attributes >/dev/null 2>&1 && ${name}_attributes;
 }
 ###

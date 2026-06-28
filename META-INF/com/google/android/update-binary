@@ -563,9 +563,6 @@ do_levelcheck;
 do_vendorlevelcheck;
 
 ui_print "Installing...";
-# hack to maintain support for anykernel.sh files that weren't updated correctly along with the AK core
-CORE=$(grep -oE 'ak.*core.sh' anykernel.sh);
-[ -f tools/$CORE ] || ln -s $AKHOME/tools/ak*-core.sh $AKHOME/tools/$CORE;
 ash anykernel.sh;
 if [ $? != 0 ]; then
   abort;
