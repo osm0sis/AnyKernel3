@@ -250,7 +250,7 @@ flash_boot() {
   cd $SPLITIMG;
   if [ -f "$BIN/mkimage" ]; then
     varlist="name arch os type comp addr ep";
-  elif [ -f "$BIN/mk" -a -f "$BIN/unpackelf" -a -f boot.img-base ]; then
+  elif [ -f "$BIN/mkbootimg" -a -f "$BIN/unpackelf" -a -f boot.img-base ]; then
     mv -f cmdline.txt boot.img-cmdline 2>/dev/null;
     varlist="cmdline base pagesize kernel_offset ramdisk_offset tags_offset";
   fi;
