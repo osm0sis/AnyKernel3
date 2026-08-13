@@ -142,7 +142,49 @@ split_boot() {
   cd $AKHOME;
 }
 
-# unpack_ramdisk (extract ramdisk only)
+# unpack_vendorrd <name|path>
+unpack_vendorrd() {
+  local comp cpio vndrname;
+
+  cd $SPLITIMG;
+  if [ -f "$1" ]; then
+    cpio=$1;
+    vndrname=$(basename $cpio .cpio);
+  else
+    case $1 in
+      platform) vndrname=ramdisk;;
+      *) vndrname=$1;;
+    esac;
+    if [ -f "vendor_ramdisk/$vndrname.cpio" ]; then
+      cpio=vendor_ramdisk/$vndrname.cpio;
+    fi;
+  fi;
+
+  comp=$(magiskboot decompress $cpio 2>&1 | grep -v 'raw' | sed -n 's;.*\[\(.*\)\];\1;p');
+  if [ "$comp" ]; then
+    mv -f $cpio $cpio.$comp;
+    magiskboot decompress $cpio.$comp $cpio;
+    if [ $? != 0 ] && $comp --help 2>/dev/null; then
+      echo "Attempting $cpio unpack with busybox $comp..." >&2;
+      $comp -dc $cpio.$comp > $cpio;
+    fi;
+  fi;
+
+  mkdir -p $VENDORRD/$vndrname;
+  chmod 755 $VENDORRD/$vndrname;
+
+  cd $VENDORRD/$vndrname;
+  EXTRACT_UNSAFE_SYMLINKS=1 cpio -d -F $SPLITIMG/$cpio -i;
+  if [ $? != 0 -o ! "$(ls)" ]; then
+    abort "Unpacking vendor ramdisk \"$vndrname\" failed. Aborting...";
+  fi;
+  if [ -d "$AKHOME/vrdtmp/$vndrname" ]; then
+    cp -af $AKHOME/vrdtmp/$vndrname/* .;
+  fi;
+  cd $VENDORRD;
+}
+
+# unpack_ramdisk (extract all ramdisks only)
 unpack_ramdisk() {
   local comp cpio vndrname;
 
@@ -181,32 +223,9 @@ unpack_ramdisk() {
     fi;
   elif [ -d vendor_ramdisk ]; then
     [ -d $VENDORRD ] && mv -f $VENDORRD $AKHOME/vrdtmp;
-
     for cpio in vendor_ramdisk/*.cpio; do
-      comp=$(magiskboot decompress $cpio 2>&1 | grep -v 'raw' | sed -n 's;.*\[\(.*\)\];\1;p');
-      if [ "$comp" ]; then
-        mv -f $cpio $cpio.$comp;
-        magiskboot decompress $cpio.$comp $cpio;
-        if [ $? != 0 ] && $comp --help 2>/dev/null; then
-          echo "Attempting $cpio unpack with busybox $comp..." >&2;
-          $comp -dc $cpio.$comp > $cpio;
-        fi;
-      fi;
-
-      vndrname=$(basename $cpio .cpio);
-      mkdir -p $VENDORRD/$vndrname;
-      chmod 755 $VENDORRD/$vndrname;
-
-      cd $VENDORRD/$vndrname;
-      EXTRACT_UNSAFE_SYMLINKS=1 cpio -d -F $SPLITIMG/$cpio -i;
-      if [ $? != 0 -o ! "$(ls)" ]; then
-        abort "Unpacking vendor ramdisk \"$vndrname\" failed. Aborting...";
-      fi;
-      if [ -d "$AKHOME/vrdtmp/$vndrname" ]; then
-        cp -af $AKHOME/vrdtmp/$vndrname/* .;
-      fi;
+      unpack_vendorrd $cpio;
     done;
-    cd $VENDORRD;
   else
     abort "No ramdisk found to unpack. Aborting...";
   fi;
@@ -220,7 +239,7 @@ dump_boot() {
 ###
 
 ### write_boot functions:
-# repack_ramdisk (repack ramdisk only)
+# repack_ramdisk (repack all ramdisks only)
 repack_ramdisk() {
   local comp packfail vndrname cpio mtktype;
 
@@ -250,13 +269,15 @@ repack_ramdisk() {
   elif [ -d $SPLITIMG/vendor_ramdisk ]; then
     cd $VENDORRD;
     for vndrname in *; do
-      if [ -f "$BIN/mkbootfs" ]; then
-        mkbootfs $vndrname > $AKHOME/$vndrname-new.cpio;
-      else
-        cd $VENDORRD/$vndrname;
-        find . | cpio -H newc -o > $AKHOME/$vndrname-new.cpio;
+      if [ -d "$VENDORRD/$vndrname" ]; then
+        if [ -f "$BIN/mkbootfs" ]; then
+          mkbootfs $vndrname > $AKHOME/$vndrname-new.cpio;
+        else
+          cd $VENDORRD/$vndrname;
+          find . | cpio -H newc -o > $AKHOME/$vndrname-new.cpio;
+        fi;
+        [ $? != 0 ] && packfail=1;
       fi;
-      [ $? != 0 ] && packfail=1;
     done;
   fi;
 
@@ -616,7 +637,7 @@ flash_generic() {
   fi;
 }
 
-### write_boot (repack ramdisk then build, sign and write image, vendor_dlkm and dtbo)
+### write_boot (repack ramdisk then build, sign and write image, vendor_dlkm, system_dlkm and dtbo)
 write_boot() {
   repack_ramdisk;
   flash_boot;
@@ -760,7 +781,7 @@ replace_file() {
   chmod $2 $1;
 }
 
-# patch_fstab <fstab file> <mount match name> <fs match type> block|mount|fstype|options|flags <original string> <replacement string>
+# patch_fstab <fstab file> <mount match name> <fs match type> <block|mount|fstype|options|flags> <original string> <replacement string>
 patch_fstab() {
   local entry part newpart newentry;
   entry=$(grep "$2[[:space:]]" $1 | grep "$3");
