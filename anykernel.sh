@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string= Kernel by 𝑻𝒂𝒎. If you want kernel with KernelSU & SUSFS, contact me: t.me/Id5523842976 or t.me/noforce2pay
+kernel.string=ExampleKernel by osm0sis @ xda-developers
 do.devicecheck=0
 do.modules=0
 do.systemless=1
