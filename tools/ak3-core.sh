@@ -130,13 +130,12 @@ split_boot() {
     dd bs=4096 skip=8 iflag=skip_bytes conv=notrunc if=$BOOTIMG of=ramdisk.cpio.gz;
   else
     (set -o pipefail; magiskboot unpack -h $BOOTIMG 2>&1 | tee infotmp >&2);
-    unpack_status=$?
-    if [ "$unpack_status" -eq 1 ]; then
-    splitfail=1
-    fi;
+    case $? in
+      1) splitfail=1;;
+    esac;
   fi;
 
-  if [ "$unpack_status" != 0 -o "$splitfail" ]; then
+  if [ $? != 0 -o "$splitfail" ]; then
     abort "Splitting image failed. Aborting...";
   fi;
   cd $AKHOME;
